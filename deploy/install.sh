@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # KI-Scale Business OS – Einrichtung auf dem Hetzner-Server (Ubuntu/Debian), als root ausführen:
 #   curl -fsSL https://raw.githubusercontent.com/KI-Scale/ki-scale-os/main/deploy/install.sh | bash
+# Oder beim Anlegen eines neuen Hetzner-Servers unter „Cloud config“ deploy/cloud-init.yaml einfügen.
 # Kann gefahrlos mehrfach laufen. Ändert nichts an n8n oder anderen Diensten.
 set -euo pipefail
+export HOME="${HOME:-/root}"
 
 REPO_URL="https://github.com/KI-Scale/ki-scale-os.git"
 APP=/opt/ki-scale-os
@@ -46,6 +48,7 @@ WorkingDirectory=$APP
 Environment=PORT=$PORT
 Environment=DATA_DIR=$DATA
 Environment=NODE_NO_WARNINGS=1
+${INITIAL_PASSWORD:+Environment=INITIAL_PASSWORD=$INITIAL_PASSWORD}
 ExecStart=/usr/bin/node server/index.mjs
 Restart=always
 RestartSec=3

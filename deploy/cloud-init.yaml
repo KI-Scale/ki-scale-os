@@ -1,0 +1,5 @@
+#cloud-config
+# Beim Anlegen eines Hetzner-Servers unter „Cloud config“ einfügen.
+# Vorher in der Zeile INITIAL_PASSWORD dein eigenes Passwort eintragen (mind. 10 Zeichen).
+runcmd:
+  - [bash, -c, "export INITIAL_PASSWORD='HIER-DEIN-PASSWORT'; curl -fsSL https://raw.githubusercontent.com/KI-Scale/ki-scale-os/main/deploy/install.sh | bash > /root/ki-scale-os-install.log 2>&1"]
