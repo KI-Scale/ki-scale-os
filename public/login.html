@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#070908">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="KI-Scale OS">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icons/icon-32.png">
+<link rel="apple-touch-icon" href="/icons/icon-180.png">
+<title>Anmelden · KI-Scale OS</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Figtree:wght@400;600;700&display=swap">
+<style>
+:root{--bg:#070908;--panel:#0e1310;--line:#1f2a22;--fg:#f3f6f2;--muted:#9aa59c;--accent:#7ed957;--ink:#0b1408;color-scheme:dark}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:radial-gradient(120% 80% at 50% 0%,#0f1a12 0%,var(--bg) 60%);color:var(--fg);font:15px/1.5 Figtree,"Helvetica Neue",Arial,sans-serif;display:grid;place-items:center;padding:24px max(16px,env(safe-area-inset-left,0px))}
+.box{width:100%;max-width:380px;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:28px;display:grid;gap:16px}
+.logo{display:flex;align-items:center;gap:12px}
+.logo img{width:44px;height:44px;border-radius:11px}
+.logo b{display:block;letter-spacing:.2em;font-weight:600}
+.logo small{display:block;letter-spacing:.3em;font-size:10px;color:#8fe061}
+h1{font:600 32px/1.1 "Cormorant Garamond",Georgia,serif;margin:6px 0 0}
+p{margin:0;color:var(--muted);font-size:14px}
+label{font-size:12px;color:var(--muted)}
+input{width:100%;margin-top:6px;background:var(--bg);border:1px solid #2b3a2f;border-radius:10px;padding:12px;color:var(--fg);font:inherit}
+input:focus{outline:2px solid var(--accent);outline-offset:1px}
+button{background:linear-gradient(120deg,#b6f08f,#7ed957 50%,#5fb83f);color:var(--ink);border:0;border-radius:10px;padding:13px;font:700 15px Figtree,sans-serif;cursor:pointer}
+.err{color:#f0716b;font-size:13px;min-height:18px}
+</style>
+</head>
+<body>
+<form class="box" id="f">
+  <div class="logo"><img src="/icons/icon-192.png" alt=""><div><b>KI-SCALE</b><small>BUSINESS OS</small></div></div>
+  <h1>Willkommen zurück, Adrian.</h1>
+  <p>Melde dich mit deinem Passwort an.</p>
+  <label for="pw">Passwort<input id="pw" type="password" autocomplete="current-password" required autofocus></label>
+  <button type="submit">Anmelden</button>
+  <div class="err" id="err" role="alert"></div>
+</form>
+<script>
+document.getElementById('f').addEventListener('submit',async e=>{e.preventDefault();const err=document.getElementById('err');err.textContent='';
+  try{const r=await fetch('/api/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({password:document.getElementById('pw').value})});const j=await r.json();
+    if(r.ok)location.href='/';else err.textContent=j.error||'Anmeldung fehlgeschlagen';}catch(x){err.textContent='Server nicht erreichbar'}});
+</script>
+</body>
+</html>

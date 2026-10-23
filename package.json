@@ -1,0 +1,9 @@
+{
+  "name": "ki-scale-os",
+  "version": "1.0.0",
+  "private": true,
+  "description": "KI-Scale Business OS – Adrian Lewus zentrale Software",
+  "type": "module",
+  "engines": { "node": ">=22.13" },
+  "scripts": { "start": "node server/index.mjs" }
+}

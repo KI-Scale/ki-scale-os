@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#070908">
+<link rel="icon" href="/icons/icon-32.png">
+<title>Einstellungen · KI-Scale OS</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+:root{--bg:#070908;--panel:#0e1310;--panel2:#131a15;--line:#1f2a22;--line2:#2b3a2f;--fg:#f3f6f2;--muted:#9aa59c;--dim:#66726a;--accent:#7ed957;--ink:#0b1408;--warn:#f1b24a;--bad:#f0716b;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.55 Figtree,"Helvetica Neue",Arial,sans-serif}
+.wrap{max-width:860px;margin:0 auto;padding-block:24px 60px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:16px}
+a{color:var(--accent)}
+.top{display:flex;justify-content:space-between;align-items:center;gap:10px}
+h1{font:600 36px/1.1 "Cormorant Garamond",Georgia,serif;margin:0}
+h2{font:600 24px/1.15 "Cormorant Garamond",Georgia,serif;margin:0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;display:grid;gap:10px}
+.head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.chip{font-size:12px;font-weight:600;border-radius:999px;padding:3px 10px}
+.ok{background:rgba(126,217,87,.12);color:var(--accent)} .no{background:rgba(241,178,74,.13);color:var(--warn)}
+ol{margin:0;padding-left:20px;color:#c9d1ca;font-size:14px} li{margin:4px 0}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+input{flex:1;min-width:0;background:var(--bg);border:1px solid var(--line2);border-radius:10px;padding:10px 12px;color:var(--fg);font:inherit}
+button{border:1px solid var(--line2);background:var(--panel2);color:var(--fg);border-radius:10px;padding:10px 14px;font:600 14px Figtree,sans-serif;cursor:pointer}
+button.pri{background:linear-gradient(120deg,#b6f08f,#7ed957 50%,#5fb83f);color:var(--ink);border:0}
+code{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:block;overflow-x:auto;font-size:12.5px;white-space:nowrap}
+.note{font-size:13px;color:var(--dim)}
+.msg{font-size:13px;min-height:18px}
+pre{margin:0;white-space:pre-wrap;font-size:12.5px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><div><a href="/">← zurück zum OS</a><h1>Einstellungen &amp; Schlüssel</h1></div><button class="pri" id="syncNow">Jetzt aktualisieren</button></div>
+  <div class="card"><div class="head"><h2>Letzte Aktualisierung</h2><span class="note" id="lastAt">–</span></div><pre id="lastOut">–</pre>
+    <div class="note">Die Zahlen werden alle 15 Minuten automatisch neu geholt. Schlüssel werden nur hier auf deinem Server gespeichert und nie angezeigt.</div></div>
+  <div id="keys"></div>
+
+  <div class="card"><div class="head"><h2>ablefy-Verkäufe (Webhook)</h2></div>
+    <p class="note" style="margin:0">Damit jeder Verkauf sofort im OS erscheint, inklusive der Seite A/B/C, von der er kam:</p>
+    <ol><li>ablefy öffnen → <a href="https://myablefy.com" target="_blank" rel="noopener">myablefy.com</a> → Konto „happyjobs“</li>
+      <li>Einstellungen → <b>Webhooks</b> (je nach Menü unter „Integrationen“ oder „Apps“) → neuen Webhook anlegen</li>
+      <li>Diese Adresse einfügen und speichern. Den bestehenden Webhook für die Academy nicht löschen, beide laufen parallel:</li></ol>
+    <code id="hook">–</code><div class="row"><button data-copy="hook">Adresse kopieren</button></div>
+    <ol start="4"><li>Ereignisse: <b>Zahlung erfolgreich</b> und <b>Erstattung / Rückbuchung</b> auswählen</li></ol></div>
+
+  <div class="card"><div class="head"><h2>Passwort ändern</h2></div>
+    <div class="row"><input id="newpw" type="password" placeholder="Neues Passwort (mind. 10 Zeichen)" autocomplete="new-password"><button id="savepw">Ändern</button></div><div class="msg" id="pwmsg"></div></div>
+</div>
+<script>
+const KEYS=[
+ {k:'CLOSE_API_KEY',t:'Close (Calls, Termine, Pipeline)',steps:['<a href="https://app.close.com/settings/developer/api-keys/" target="_blank" rel="noopener">Close → Einstellungen → Developer → API Keys</a> öffnen','„+ New API Key“ klicken, Name: Business OS','Schlüssel kopieren und unten einfügen']},
+ {k:'CALENDLY_TOKEN',t:'Calendly (gebuchte Termine, No-Shows)',steps:['<a href="https://calendly.com/integrations/api_webhooks" target="_blank" rel="noopener">Calendly → Integrationen → API &amp; Webhooks</a> öffnen (mit dem Team-Konto ksbteam)','„Generate new token“ (Personal Access Token), Name: Business OS','Token kopieren und unten einfügen']},
+ {k:'META_TOKEN',t:'Meta Ads (Ausgaben, Klicks, Käufe)',steps:['<a href="https://developers.facebook.com/apps/creation/" target="_blank" rel="noopener">developers.facebook.com → App erstellen</a> → Typ „Unternehmen/Business“, Name „KI-Scale OS“, Business-Portfolio „KI-Scale Blueprint“ (falls du noch keine App hast)','<a href="https://business.facebook.com/latest/settings/system_users?business_id=1545716317156355" target="_blank" rel="noopener">Business-Einstellungen → Systemnutzer</a> → „Hinzufügen“ → Name „Business OS“, Rolle Mitarbeiter','Beim Systemnutzer „Assets zuweisen“ → Werbekonto „KI-Scale“ → Berechtigung „Leistung ansehen“','„Neuen Token generieren“ → App „KI-Scale OS“ → Berechtigungen <b>ads_read</b> und <b>read_insights</b> → Token kopieren und unten einfügen']},
+ {k:'ANTHROPIC_API_KEY',t:'Berater (optional, kostet pro Frage ein paar Cent)',steps:['<a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com → API Keys</a> öffnen','„Create Key“, Name: Business OS → kopieren und unten einfügen','Ohne Schlüssel funktioniert alles andere trotzdem']}
+];
+const $=s=>document.querySelector(s);
+async function load(){const r=await fetch('/api/settings');if(r.status===401)return location.href='/login';const j=await r.json();
+  $('#keys').innerHTML=KEYS.map(x=>`<div class="card"><div class="head"><h2>${x.t}</h2><span class="chip ${j.keys[x.k]?'ok':'no'}">${j.keys[x.k]?'eingetragen':'fehlt noch'}</span></div><ol>${x.steps.map(s=>'<li>'+s+'</li>').join('')}</ol><div class="row"><input id="in_${x.k}" type="password" placeholder="${j.keys[x.k]?'neuen Schlüssel einfügen, um ihn zu ersetzen':'Schlüssel hier einfügen'}" autocomplete="off"><button class="pri" data-save="${x.k}">Speichern</button></div><div class="msg" id="m_${x.k}"></div></div>`).join('');
+  $('#hook').textContent=j.ablefy_webhook;
+  if(j.last_sync){$('#lastAt').textContent=new Date(j.last_sync.at).toLocaleString('de-DE');$('#lastOut').textContent=j.last_sync.out.join('\n')}}
+document.addEventListener('click',async e=>{
+  const b=e.target.closest('[data-save]');if(b){const k=b.dataset.save,v=$('#in_'+k).value.trim();if(!v)return;b.disabled=true;$('#m_'+k).textContent='Speichere und prüfe …';
+    const r=await fetch('/api/settings',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({[k]:v})});$('#m_'+k).textContent=r.ok?'Gespeichert. Die Zahlen werden jetzt geholt – das Ergebnis steht oben.':'Fehler beim Speichern';b.disabled=false;setTimeout(load,8000);return}
+  const c=e.target.closest('[data-copy]');if(c){const t=$('#'+c.dataset.copy).textContent;try{await navigator.clipboard.writeText(t);c.textContent='Kopiert ✓'}catch(_){getSelection().selectAllChildren($('#'+c.dataset.copy))}}
+});
+$('#syncNow').addEventListener('click',async e=>{e.target.disabled=true;e.target.textContent='Aktualisiere …';await fetch('/api/sync',{method:'POST'});await load();e.target.disabled=false;e.target.textContent='Jetzt aktualisieren'});
+$('#savepw').addEventListener('click',async()=>{const v=$('#newpw').value;const r=await fetch('/api/settings',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({NEW_PASSWORD:v})});const j=await r.json().catch(()=>({}));$('#pwmsg').textContent=r.ok?'Passwort geändert.':(j.error||'Fehler')});
+load();
+</script>
+</body>
+</html>
