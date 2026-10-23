@@ -145,7 +145,8 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, '127.0.0.1', () => log(`Business OS läuft auf 127.0.0.1:${PORT}`));
+const HOST = process.env.HOST || '127.0.0.1';
+server.listen(PORT, HOST, () => log(`Business OS läuft auf ${HOST}:${PORT}`));
 setInterval(runSync, 15 * 60e3);
 setInterval(() => { try { rebuildLpAndSales(store); } catch (e) { log('lp', e.message); } }, 60e3);
 setTimeout(runSync, 5e3);
