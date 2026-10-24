@@ -32,6 +32,13 @@ const cur = $input.first().json || {};
 return [{ json: { key: d.key, mail: 'wa', typ: d.key.split('|')[1], anzahl: (Number(cur.anzahl) || 0) + 1 } }];
 """
 
+ZIEL = r"""
+const L = $input.first().json || {};
+const t = Date.parse(L.gesendet && L.gesendet !== '-' ? L.gesendet : (L.geklickt && L.geklickt !== '-' ? L.geklickt : '')) || Date.now();
+const offen = Date.now() < t + 72 * 3600e3;
+const ziel = offen ? '__LP__' : '__CAL__';
+return [{ json: { token: $('WA Klick → Ereignis').first().json.token, typ: 'click', ziel } }];
+""".replace('__LP__', LP).replace('__CAL__', 'https://calendly.com/ksbteam/kostenloses-mehrwertgespraech?src=wa-abgelaufen')
 HOT = open(os.path.join(D, 'heiss.js')).read()
 
 nodes, conn = [], {}
@@ -40,13 +47,17 @@ def link(a, b, idx=0):
     while len(c["main"]) <= idx: c["main"].append([])
     c["main"][idx].append({"node": b, "type": "main", "index": 0})
 
-for name, path, typ, resp, y in [
-    ('WA Klick', 'fp-w', 'click', dict(respondWith='redirect', redirectURL=LP, options={}), 0),
-    ('WA gesendet', 'fp-ws', 'sent', dict(respondWith='redirect', redirectURL=PIX, options={}), 200),
-]:
-    w = webhook(name, path, 'GET', 0, y); r = respond(name + ' → Antwort', 240, y, **resp)
-    c = code(name + ' → Ereignis', TOKEN.replace('__TYP__', typ), 480, y)
-    nodes += [w, r, c]; link(w['name'], r['name']); link(r['name'], c['name']); link(c['name'], 'WA Ereignis')
+# „gesendet“-Signal: sofort antworten, dann verbuchen
+w = webhook('WA gesendet', 'fp-ws', 'GET', 0, 200); r = respond('WA gesendet → Antwort', 240, 200, respondWith='redirect', redirectURL=PIX, options={})
+c = code('WA gesendet → Ereignis', TOKEN.replace('__TYP__', 'sent'), 480, 200)
+nodes += [w, r, c]; link(w['name'], r['name']); link(r['name'], c['name']); link(c['name'], 'WA Ereignis')
+# Klick: Lead nachschlagen → innerhalb von 72 Std. Verkaufsseite, danach Gesprächstermin
+w = webhook('WA Klick', 'fp-w', 'GET', 0, 0)
+c = code('WA Klick → Ereignis', TOKEN.replace('__TYP__', 'click'), 240, 0)
+g = node('WA Klick → Lead', 'n8n-nodes-base.dataTable', 1.1, {"operation": "get", "dataTableId": dt('__WA__'), "filters": {"conditions": [{"keyName": "token", "keyValue": "={{ $json.token }}"}]}, "limit": 1}, 480, 0, alwaysOutputData=True)
+z = code('WA Klick → Ziel', ZIEL, 720, 0)
+r = respond('WA Klick → Antwort', 960, 0, respondWith='redirect', redirectURL='={{ $json.ziel }}', options={})
+nodes += [w, c, g, z, r]; link('WA Klick', c['name']); link(c['name'], g['name']); link(g['name'], z['name']); link(z['name'], r['name']); link(r['name'], 'WA Ereignis')
 
 nodes += [
     node('WA Ereignis', 'n8n-nodes-base.noOp', 1, {}, 720, 100),

@@ -2,51 +2,6 @@
  "name": "Outreach | WhatsApp-Tracking & Heiße Leads",
  "nodes": [
   {
-   "id": "84c35a56-915c-5f43-89ab-8998086bb7b5",
-   "name": "WA Klick",
-   "type": "n8n-nodes-base.webhook",
-   "typeVersion": 2,
-   "position": [
-    0,
-    0
-   ],
-   "parameters": {
-    "path": "fp-w",
-    "httpMethod": "GET",
-    "responseMode": "responseNode",
-    "options": {}
-   },
-   "webhookId": "a1e2368e-60ad-57d8-8b9c-6e26dc132302"
-  },
-  {
-   "id": "677c8f34-f1a3-5b00-9a30-3fce28fb56f4",
-   "name": "WA Klick → Antwort",
-   "type": "n8n-nodes-base.respondToWebhook",
-   "typeVersion": 1.1,
-   "position": [
-    240,
-    0
-   ],
-   "parameters": {
-    "respondWith": "redirect",
-    "redirectURL": "https://faceless.adrian-lewu.de/b/?src=wa&utm_source=whatsapp&utm_campaign=fp197&ziel=lp",
-    "options": {}
-   }
-  },
-  {
-   "id": "de970b8c-00f5-5628-81fe-5e48883164fc",
-   "name": "WA Klick → Ereignis",
-   "type": "n8n-nodes-base.code",
-   "typeVersion": 2,
-   "position": [
-    480,
-    0
-   ],
-   "parameters": {
-    "jsCode": "\nconst q = $input.first().json.query || {};\nreturn [{ json: { token: String(q.t || '').replace(/[^a-z0-9]/gi, '').slice(0, 32), typ: 'click' } }];\n"
-   }
-  },
-  {
    "id": "141c3074-b6be-5b17-9dec-d9bb228b9b0f",
    "name": "WA gesendet",
    "type": "n8n-nodes-base.webhook",
@@ -89,6 +44,92 @@
    ],
    "parameters": {
     "jsCode": "\nconst q = $input.first().json.query || {};\nreturn [{ json: { token: String(q.t || '').replace(/[^a-z0-9]/gi, '').slice(0, 32), typ: 'sent' } }];\n"
+   }
+  },
+  {
+   "id": "84c35a56-915c-5f43-89ab-8998086bb7b5",
+   "name": "WA Klick",
+   "type": "n8n-nodes-base.webhook",
+   "typeVersion": 2,
+   "position": [
+    0,
+    0
+   ],
+   "parameters": {
+    "path": "fp-w",
+    "httpMethod": "GET",
+    "responseMode": "responseNode",
+    "options": {}
+   },
+   "webhookId": "a1e2368e-60ad-57d8-8b9c-6e26dc132302"
+  },
+  {
+   "id": "de970b8c-00f5-5628-81fe-5e48883164fc",
+   "name": "WA Klick → Ereignis",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    240,
+    0
+   ],
+   "parameters": {
+    "jsCode": "\nconst q = $input.first().json.query || {};\nreturn [{ json: { token: String(q.t || '').replace(/[^a-z0-9]/gi, '').slice(0, 32), typ: 'click' } }];\n"
+   }
+  },
+  {
+   "id": "c9793b7a-dcba-58d3-993d-105f59df7b49",
+   "name": "WA Klick → Lead",
+   "type": "n8n-nodes-base.dataTable",
+   "typeVersion": 1.1,
+   "position": [
+    480,
+    0
+   ],
+   "parameters": {
+    "operation": "get",
+    "dataTableId": {
+     "__rl": true,
+     "value": "__WA__",
+     "mode": "id"
+    },
+    "filters": {
+     "conditions": [
+      {
+       "keyName": "token",
+       "keyValue": "={{ $json.token }}"
+      }
+     ]
+    },
+    "limit": 1
+   },
+   "alwaysOutputData": true
+  },
+  {
+   "id": "7a6afe26-8622-512d-9d48-7a08be841b50",
+   "name": "WA Klick → Ziel",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    720,
+    0
+   ],
+   "parameters": {
+    "jsCode": "\nconst L = $input.first().json || {};\nconst t = Date.parse(L.gesendet && L.gesendet !== '-' ? L.gesendet : (L.geklickt && L.geklickt !== '-' ? L.geklickt : '')) || Date.now();\nconst offen = Date.now() < t + 72 * 3600e3;\nconst ziel = offen ? 'https://faceless.adrian-lewu.de/b/?src=wa&utm_source=whatsapp&utm_campaign=fp197&ziel=lp' : 'https://calendly.com/ksbteam/kostenloses-mehrwertgespraech?src=wa-abgelaufen';\nreturn [{ json: { token: $('WA Klick → Ereignis').first().json.token, typ: 'click', ziel } }];\n"
+   }
+  },
+  {
+   "id": "677c8f34-f1a3-5b00-9a30-3fce28fb56f4",
+   "name": "WA Klick → Antwort",
+   "type": "n8n-nodes-base.respondToWebhook",
+   "typeVersion": 1.1,
+   "position": [
+    960,
+    0
+   ],
+   "parameters": {
+    "respondWith": "redirect",
+    "redirectURL": "={{ $json.ziel }}",
+    "options": {}
    }
   },
   {
@@ -507,39 +548,6 @@
   }
  ],
  "connections": {
-  "WA Klick": {
-   "main": [
-    [
-     {
-      "node": "WA Klick → Antwort",
-      "type": "main",
-      "index": 0
-     }
-    ]
-   ]
-  },
-  "WA Klick → Antwort": {
-   "main": [
-    [
-     {
-      "node": "WA Klick → Ereignis",
-      "type": "main",
-      "index": 0
-     }
-    ]
-   ]
-  },
-  "WA Klick → Ereignis": {
-   "main": [
-    [
-     {
-      "node": "WA Ereignis",
-      "type": "main",
-      "index": 0
-     }
-    ]
-   ]
-  },
   "WA gesendet": {
    "main": [
     [
@@ -563,6 +571,61 @@
    ]
   },
   "WA gesendet → Ereignis": {
+   "main": [
+    [
+     {
+      "node": "WA Ereignis",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "WA Klick": {
+   "main": [
+    [
+     {
+      "node": "WA Klick → Ereignis",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "WA Klick → Ereignis": {
+   "main": [
+    [
+     {
+      "node": "WA Klick → Lead",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "WA Klick → Lead": {
+   "main": [
+    [
+     {
+      "node": "WA Klick → Ziel",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "WA Klick → Ziel": {
+   "main": [
+    [
+     {
+      "node": "WA Klick → Antwort",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "WA Klick → Antwort": {
    "main": [
     [
      {
