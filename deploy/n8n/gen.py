@@ -28,7 +28,7 @@ def code(name, js, x, y, **extra):
 # ---------- Tracking ----------
 NORMAL = r"""
 const q = $input.first().json.query || {};
-return [{ json: { token: String(q.t || '').replace(/[^a-f0-9]/gi,'').slice(0,32), mail: String(q.m || 'x').replace(/[^0-9a-zA-Z]/g,'').slice(0,4), typ: '__TYP__' } }];
+return [{ json: { token: String(q.t || '').replace(/[^a-z0-9]/gi,'').slice(0,32), mail: String(q.m || 'x').replace(/[^0-9a-zA-Z]/g,'').slice(0,4), typ: '__TYP__' } }];
 """
 DECIDE = r"""
 const ev = $('Ereignis').first().json;
@@ -47,7 +47,7 @@ const d = $('Entscheiden').first().json;
 const cur = $input.first().json || {};
 return [{ json: { key: d.key, mail: d.mail, typ: d.typ, anzahl: (Number(cur.anzahl) || 0) + 1 } }];
 """
-UNSUB_FORM = """={{ '<!doctype html><html lang=de><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><title>Abmelden</title><body style="margin:0;background:#f5f7f4;font:16px/1.6 Arial,sans-serif;color:#141a15"><div style="max-width:460px;margin:12vh auto;background:#fff;border:1px solid #e2e7e0;border-radius:16px;padding:28px"><div style="font-size:12px;letter-spacing:3px;color:#5c6a5f;font-weight:bold">KI-SCALE</div><h1 style="font-size:24px;margin:8px 0 10px">Von den Mails abmelden?</h1><p style="margin:0 0 20px;color:#4b5a4e">Du bekommst danach keine Mails mehr von uns zu diesem Angebot.</p><form method=post action="' + '""" + BASE + """fp-u?t=' + ($json.query.t || '').replace(/[^a-f0-9]/gi,'') + '&m=' + ($json.query.m || '').replace(/[^0-9a-zA-Z]/g,'') + '"><button style="background:#141a15;color:#fff;border:0;border-radius:10px;padding:12px 20px;font-size:16px;cursor:pointer">Ja, abmelden</button></form></div></body></html>' }}"""
+UNSUB_FORM = """={{ '<!doctype html><html lang=de><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><title>Abmelden</title><body style="margin:0;background:#f5f7f4;font:16px/1.6 Arial,sans-serif;color:#141a15"><div style="max-width:460px;margin:12vh auto;background:#fff;border:1px solid #e2e7e0;border-radius:16px;padding:28px"><div style="font-size:12px;letter-spacing:3px;color:#5c6a5f;font-weight:bold">KI-SCALE</div><h1 style="font-size:24px;margin:8px 0 10px">Von den Mails abmelden?</h1><p style="margin:0 0 20px;color:#4b5a4e">Du bekommst danach keine Mails mehr von uns zu diesem Angebot.</p><form method=post action="' + '""" + BASE + """fp-u?t=' + ($json.query.t || '').replace(/[^a-z0-9]/gi,'') + '&m=' + ($json.query.m || '').replace(/[^0-9a-zA-Z]/g,'') + '"><button style="background:#141a15;color:#fff;border:0;border-radius:10px;padding:12px 20px;font-size:16px;cursor:pointer">Ja, abmelden</button></form></div></body></html>' }}"""
 UNSUB_DONE = """<!doctype html><html lang=de><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><title>Abgemeldet</title><body style="margin:0;background:#f5f7f4;font:16px/1.6 Arial,sans-serif;color:#141a15"><div style="max-width:460px;margin:12vh auto;background:#fff;border:1px solid #e2e7e0;border-radius:16px;padding:28px"><div style="font-size:12px;letter-spacing:3px;color:#5c6a5f;font-weight:bold">KI-SCALE</div><h1 style="font-size:24px;margin:8px 0 10px">Du bist abgemeldet.</h1><p style="margin:0;color:#4b5a4e">Du bekommst keine Mails mehr zu diesem Angebot. Alles Gute dir!</p></div></body></html>"""
 HTML_HDR = {"responseHeaders": {"entries": [{"name": "Content-Type", "value": "text/html; charset=utf-8"}, {"name": "Cache-Control", "value": "no-store"}]}}
 
