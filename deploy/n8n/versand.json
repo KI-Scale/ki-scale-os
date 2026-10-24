@@ -2,8 +2,8 @@
  "name": "Outreach | Versand über Amazon SES",
  "nodes": [
   {
-   "id": "dd7221c5-e54e-5a24-82a4-36610162eea3",
-   "name": "Alle 5 Minuten",
+   "id": "93125b44-5362-525e-986b-59b9ea6d6acf",
+   "name": "Alle 10 Minuten",
    "type": "n8n-nodes-base.scheduleTrigger",
    "typeVersion": 1.2,
    "position": [
@@ -15,15 +15,15 @@
      "interval": [
       {
        "field": "minutes",
-       "minutesInterval": 5
+       "minutesInterval": 10
       }
      ]
     }
    }
   },
   {
-   "id": "6956a1ef-d1b8-5526-9ec9-2eaa347327c3",
-   "name": "Plan",
+   "id": "4efcbfe6-f5be-541b-98e3-2ff06fd708e6",
+   "name": "Einstellungen",
    "type": "n8n-nodes-base.code",
    "typeVersion": 2,
    "position": [
@@ -31,146 +31,19 @@
     300
    ],
    "parameters": {
-    "jsCode": "\n// ===== Einstellungen (Claude passt diese an) =====\nconst MODUS = 'aus';                       // 'aus' | 'test' (nur Test-Leads) | 'live'\nconst START = '2026-10-26T17:00:00Z';      // Beginn der 24 Stunden (UTC)\nconst STUNDEN = 24;\nconst PRO_LAUF = 600;                      // Mails pro 5-Minuten-Lauf\n// =================================================\nif (MODUS === 'aus') return [];\nconst now = Date.now(), s = Date.parse(START), e = s + STUNDEN * 3600e3;\nconst status = MODUS === 'test' ? 'test' : 'aktiv';\nconst fristTxt = new Date(e).toLocaleString('de-DE', { timeZone: 'Europe/Berlin', weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }) + ' Uhr';\nlet phase = null;\nif (now >= e + 2 * 3600e3) phase = 'm4';\nelse if (now >= e - 3 * 3600e3 && now < e) phase = 'm3';\nelse if (now >= s + 8 * 3600e3 && now < e) phase = 'm2';\nelse if (now >= s && now < e) phase = 'm1';\nif (MODUS === 'test') phase = $getWorkflowStaticData('global').testPhase || 'm1';\nconst out = [];\nif (phase) out.push({ json: { phase, status, limit: PRO_LAUF, frist: fristTxt, endet: e } });\nif (now >= s && now < e) out.push({ json: { phase: 'm2b', status, limit: 200, frist: fristTxt, endet: e } });\nreturn out;\n"
+    "jsCode": "\n// ===== Einstellungen (Claude passt diese an) =====\nconst MODUS = 'aus';      // 'aus' | 'test' (nur Test-Leads, Minuten statt Stunden) | 'live'\nconst PRO_TAG = 1000;     // neue Leads pro Tag\nconst VON = 8, BIS = 21;  // erste Mails nur zwischen 8 und 21 Uhr (deutsche Zeit)\nconst FOLGE_VON = 7, FOLGE_BIS = 22; // Folge-Mails zwischen 7 und 22 Uhr\nconst PRO_LAUF = 150;     // höchstens so viele neue Leads pro 10-Minuten-Lauf\n// =================================================\nif (MODUS === 'aus') return [];\nconst test = MODUS === 'test';\nconst now = new Date();\nconst h = Number(now.toLocaleString('en-GB', { timeZone: 'Europe/Berlin', hour: '2-digit', hour12: false }));\nconst tag = now.toLocaleDateString('sv-SE', { timeZone: 'Europe/Berlin' });\nconst sd = $getWorkflowStaticData('global');\nif (sd.tag !== tag) { sd.tag = tag; sd.heute = 0; }\nconst offen = test || (h >= VON && h < BIS);\nconst folgeOffen = test || (h >= FOLGE_VON && h < FOLGE_BIS);\nconst restLaeufe = Math.max(1, (BIS - h) * 6 - Math.floor(now.getMinutes() / 10));\nlet neu = offen ? Math.min(PRO_LAUF, Math.ceil(Math.max(0, PRO_TAG - (sd.heute || 0)) / (test ? 1 : restLaeufe))) : 0;\nconst status = test ? 'test' : 'aktiv';\nreturn [{ json: { status, neu, neuStatus: neu > 0 ? status : '__keiner__', neuLimit: Math.max(1, neu), faktor: test ? 1 / 60 : 1, folgeOffen, heute: sd.heute || 0, tag } }];\n"
    }
   },
   {
-   "id": "456c730c-0053-524c-b7b8-1bb11344f769",
-   "name": "Welche Mail?",
-   "type": "n8n-nodes-base.switch",
-   "typeVersion": 3.2,
+   "id": "365b70d7-4112-524c-bf95-1b885779892a",
+   "name": "Laufende Leads",
+   "type": "n8n-nodes-base.dataTable",
+   "typeVersion": 1.1,
    "position": [
     440,
     300
    ],
    "parameters": {
-    "rules": {
-     "values": [
-      {
-       "conditions": {
-        "options": {
-         "caseSensitive": true,
-         "typeValidation": "strict",
-         "version": 2
-        },
-        "conditions": [
-         {
-          "leftValue": "={{ $json.phase }}",
-          "rightValue": "m1",
-          "operator": {
-           "type": "string",
-           "operation": "equals"
-          }
-         }
-        ],
-        "combinator": "and"
-       },
-       "renameOutput": true,
-       "outputKey": "m1"
-      },
-      {
-       "conditions": {
-        "options": {
-         "caseSensitive": true,
-         "typeValidation": "strict",
-         "version": 2
-        },
-        "conditions": [
-         {
-          "leftValue": "={{ $json.phase }}",
-          "rightValue": "m2",
-          "operator": {
-           "type": "string",
-           "operation": "equals"
-          }
-         }
-        ],
-        "combinator": "and"
-       },
-       "renameOutput": true,
-       "outputKey": "m2"
-      },
-      {
-       "conditions": {
-        "options": {
-         "caseSensitive": true,
-         "typeValidation": "strict",
-         "version": 2
-        },
-        "conditions": [
-         {
-          "leftValue": "={{ $json.phase }}",
-          "rightValue": "m2b",
-          "operator": {
-           "type": "string",
-           "operation": "equals"
-          }
-         }
-        ],
-        "combinator": "and"
-       },
-       "renameOutput": true,
-       "outputKey": "m2b"
-      },
-      {
-       "conditions": {
-        "options": {
-         "caseSensitive": true,
-         "typeValidation": "strict",
-         "version": 2
-        },
-        "conditions": [
-         {
-          "leftValue": "={{ $json.phase }}",
-          "rightValue": "m3",
-          "operator": {
-           "type": "string",
-           "operation": "equals"
-          }
-         }
-        ],
-        "combinator": "and"
-       },
-       "renameOutput": true,
-       "outputKey": "m3"
-      },
-      {
-       "conditions": {
-        "options": {
-         "caseSensitive": true,
-         "typeValidation": "strict",
-         "version": 2
-        },
-        "conditions": [
-         {
-          "leftValue": "={{ $json.phase }}",
-          "rightValue": "m4",
-          "operator": {
-           "type": "string",
-           "operation": "equals"
-          }
-         }
-        ],
-        "combinator": "and"
-       },
-       "renameOutput": true,
-       "outputKey": "m4"
-      }
-     ]
-    },
-    "options": {}
-   }
-  },
-  {
-   "id": "897b070b-0e01-591a-b4aa-598a71465344",
-   "name": "Leads Mail 1",
-   "type": "n8n-nodes-base.dataTable",
-   "typeVersion": 1.1,
-   "position": [
-    680,
-    60
-   ],
-   "parameters": {
     "operation": "get",
     "dataTableId": {
      "__rl": true,
@@ -186,241 +59,57 @@
       },
       {
        "keyName": "m1",
-       "keyValue": "-"
-      }
-     ]
-    },
-    "limit": "={{ $json.limit }}"
-   }
-  },
-  {
-   "id": "e5058909-ace1-591f-b94f-2217be453912",
-   "name": "Leads Mail 2",
-   "type": "n8n-nodes-base.dataTable",
-   "typeVersion": 1.1,
-   "position": [
-    680,
-    200
-   ],
-   "parameters": {
-    "operation": "get",
-    "dataTableId": {
-     "__rl": true,
-     "value": "__LEADS__",
-     "mode": "id"
-    },
-    "matchType": "allConditions",
-    "filters": {
-     "conditions": [
-      {
-       "keyName": "status",
-       "keyValue": "={{ $json.status }}"
-      },
-      {
-       "keyName": "m2",
-       "keyValue": "-"
-      },
-      {
-       "keyName": "m1",
-       "condition": "neq",
-       "keyValue": "-"
-      },
-      {
-       "keyName": "gekauft",
-       "keyValue": "-"
-      }
-     ]
-    },
-    "limit": "={{ $json.limit }}"
-   }
-  },
-  {
-   "id": "92c898bf-0114-5603-af8c-ef57fc5cb3e8",
-   "name": "Leads Mail 2b",
-   "type": "n8n-nodes-base.dataTable",
-   "typeVersion": 1.1,
-   "position": [
-    680,
-    340
-   ],
-   "parameters": {
-    "operation": "get",
-    "dataTableId": {
-     "__rl": true,
-     "value": "__LEADS__",
-     "mode": "id"
-    },
-    "matchType": "allConditions",
-    "filters": {
-     "conditions": [
-      {
-       "keyName": "status",
-       "keyValue": "={{ $json.status }}"
-      },
-      {
-       "keyName": "m2b",
-       "keyValue": "-"
-      },
-      {
-       "keyName": "geklickt",
-       "condition": "neq",
-       "keyValue": "-"
-      },
-      {
-       "keyName": "gekauft",
-       "keyValue": "-"
-      }
-     ]
-    },
-    "limit": "={{ $json.limit }}"
-   }
-  },
-  {
-   "id": "a3a12eb1-560c-51d4-9609-a0fde9769f02",
-   "name": "Leads Mail 3",
-   "type": "n8n-nodes-base.dataTable",
-   "typeVersion": 1.1,
-   "position": [
-    680,
-    480
-   ],
-   "parameters": {
-    "operation": "get",
-    "dataTableId": {
-     "__rl": true,
-     "value": "__LEADS__",
-     "mode": "id"
-    },
-    "matchType": "allConditions",
-    "filters": {
-     "conditions": [
-      {
-       "keyName": "status",
-       "keyValue": "={{ $json.status }}"
-      },
-      {
-       "keyName": "m3",
-       "keyValue": "-"
-      },
-      {
-       "keyName": "m1",
-       "condition": "neq",
-       "keyValue": "-"
-      },
-      {
-       "keyName": "gekauft",
-       "keyValue": "-"
-      }
-     ]
-    },
-    "limit": "={{ $json.limit }}"
-   }
-  },
-  {
-   "id": "7d9a39fc-477b-5cff-ba8e-b4a98a53bab9",
-   "name": "Leads Mail 4",
-   "type": "n8n-nodes-base.dataTable",
-   "typeVersion": 1.1,
-   "position": [
-    680,
-    620
-   ],
-   "parameters": {
-    "operation": "get",
-    "dataTableId": {
-     "__rl": true,
-     "value": "__LEADS__",
-     "mode": "id"
-    },
-    "matchType": "allConditions",
-    "filters": {
-     "conditions": [
-      {
-       "keyName": "status",
-       "keyValue": "={{ $json.status }}"
+       "keyValue": "-",
+       "condition": "neq"
       },
       {
        "keyName": "m4",
        "keyValue": "-"
       },
       {
-       "keyName": "m1",
-       "condition": "neq",
-       "keyValue": "-"
-      },
-      {
        "keyName": "gekauft",
        "keyValue": "-"
       }
      ]
     },
-    "limit": "={{ $json.limit }}"
-   }
+    "returnAll": true
+   },
+   "alwaysOutputData": true,
+   "executeOnce": true
   },
   {
-   "id": "efe63d07-5423-5f34-b105-1b52658f6d99",
-   "name": "Phase m1",
-   "type": "n8n-nodes-base.code",
-   "typeVersion": 2,
+   "id": "d2eb76f9-2df6-5834-a463-44ea07868fa8",
+   "name": "Neue Leads",
+   "type": "n8n-nodes-base.dataTable",
+   "typeVersion": 1.1,
    "position": [
-    900,
-    60
+    660,
+    300
    ],
    "parameters": {
-    "jsCode": "return $input.all().map(i => ({ json: { ...i.json, _phase: 'm1' } }));"
-   }
-  },
-  {
-   "id": "63ac8749-e657-55b8-aee4-acec6dda31ac",
-   "name": "Phase m2",
-   "type": "n8n-nodes-base.code",
-   "typeVersion": 2,
-   "position": [
-    900,
-    200
-   ],
-   "parameters": {
-    "jsCode": "return $input.all().map(i => ({ json: { ...i.json, _phase: 'm2' } }));"
-   }
-  },
-  {
-   "id": "ae325cda-4bde-5092-af15-de5197b7289a",
-   "name": "Phase m2b",
-   "type": "n8n-nodes-base.code",
-   "typeVersion": 2,
-   "position": [
-    900,
-    340
-   ],
-   "parameters": {
-    "jsCode": "return $input.all().map(i => ({ json: { ...i.json, _phase: 'm2b' } }));"
-   }
-  },
-  {
-   "id": "75a5c463-ab87-5f7e-9e5d-6d98e96228e4",
-   "name": "Phase m3",
-   "type": "n8n-nodes-base.code",
-   "typeVersion": 2,
-   "position": [
-    900,
-    480
-   ],
-   "parameters": {
-    "jsCode": "return $input.all().map(i => ({ json: { ...i.json, _phase: 'm3' } }));"
-   }
-  },
-  {
-   "id": "a5bb99e8-2e75-54ee-bc6e-502c8a0cb87c",
-   "name": "Phase m4",
-   "type": "n8n-nodes-base.code",
-   "typeVersion": 2,
-   "position": [
-    900,
-    620
-   ],
-   "parameters": {
-    "jsCode": "return $input.all().map(i => ({ json: { ...i.json, _phase: 'm4' } }));"
-   }
+    "operation": "get",
+    "dataTableId": {
+     "__rl": true,
+     "value": "__LEADS__",
+     "mode": "id"
+    },
+    "matchType": "allConditions",
+    "filters": {
+     "conditions": [
+      {
+       "keyName": "status",
+       "keyValue": "={{ $('Einstellungen').first().json.neuStatus }}"
+      },
+      {
+       "keyName": "m1",
+       "keyValue": "-"
+      }
+     ]
+    },
+    "limit": "={{ $('Einstellungen').first().json.neuLimit }}"
+   },
+   "alwaysOutputData": true,
+   "executeOnce": true
   },
   {
    "id": "55f98dcf-0c6d-531f-81d8-7f799c3e74a7",
@@ -428,12 +117,13 @@
    "type": "n8n-nodes-base.code",
    "typeVersion": 2,
    "position": [
-    1120,
+    880,
     300
    ],
    "parameters": {
-    "jsCode": "\nconst MAILS = __MAILS__;\nconst BASE = 'https://n8n.ki-scale.com/webhook/';\nconst out = [];\nfor (const it of $input.all()) {\n  const L = it.json; if (!L || !L.token) continue;\n  const P = $('Plan').all().find(p => p.json.phase === L._phase)?.json || $('Plan').first().json;\n  const field = L._phase;\n  let id = field === 'm1' ? '1' + (L.variante || 'A') : field.slice(1);\n  if (field === 'm2b') {   // nur, wenn der Klick mindestens 1 Std. her ist (grob über m1/m2-Zeit)\n    const last = Date.parse(L.m2 !== '-' ? L.m2 : L.m1); if (!last || Date.now() - last < 3600e3) continue;\n  }\n  const T = MAILS[id]; if (!T) continue;\n  const name = String(L.vorname || '').trim().split(' ')[0];\n  const q = 't=' + L.token + '&m=' + id;\n  const rep = s => s.split('{{VORNAME_SP}}').join(name ? ' ' + name : '').split('{{VORNAME}}').join(name).split('{{FRIST}}').join(P.frist)\n    .split('{{KLICK}}').join(BASE + 'fp-c?' + q + '&z=lp').split('{{KLICK_CAL}}').join(BASE + 'fp-c?' + q + '&z=cal')\n    .split('{{ABMELDEN}}').join(BASE + 'fp-u?' + q).split('{{PIXEL}}').join(BASE + 'fp-o?' + q);\n  let subject = T.subject; if (!name) subject = subject.replace(', {{VORNAME}}', '');\n  const html = rep(T.html);\n  const text = html.replace(/<style[\\s\\S]*?<\\/style>/g, '').replace(/<a [^>]*href=\"([^\"]+)\"[^>]*>([\\s\\S]*?)<\\/a>/g, '$2 ($1)').replace(/<br\\s*\\/?>/g, '\\n').replace(/<\\/(p|div|tr|h\\d)>/g, '\\n').replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/\\n\\s*\\n+/g, '\\n\\n').trim();\n  out.push({ json: { to: L.email, token: L.token, field, mailId: id,\n    body: { FromEmailAddress: 'Adrian Lewu <adrian@mail.adrian-lewu.de>', ReplyToAddresses: ['team@ki-scale.com'], Destination: { ToAddresses: [L.email] },\n      Content: { Simple: { Subject: { Data: rep(subject), Charset: 'UTF-8' }, Body: { Html: { Data: html, Charset: 'UTF-8' }, Text: { Data: text, Charset: 'UTF-8' } },\n        Headers: [{ Name: 'List-Unsubscribe', Value: '<' + BASE + 'fp-u?' + q + '>' }, { Name: 'List-Unsubscribe-Post', Value: 'List-Unsubscribe=One-Click' }] } } } } });\n}\nreturn out;\n"
-   }
+    "jsCode": "\nconst MAILS = __MAILS__;\nconst INLINE = __INLINE__;\nconst BASE = 'https://n8n.ki-scale.com/webhook/';\nconst E = $('Einstellungen').first().json;\nconst H = 3600e3 * E.faktor, now = Date.now();\nconst iso = t => t && t !== '-' && t !== 'fehler' ? Date.parse(t) : 0;\nconst fristText = end => {\n  const d = new Date(end), o = { timeZone: 'Europe/Berlin' };\n  return d.toLocaleDateString('de-DE', { ...o, weekday: 'long', day: 'numeric', month: 'long' }) + ' um ' + d.toLocaleTimeString('de-DE', { ...o, hour: '2-digit', minute: '2-digit' }) + ' Uhr';\n};\nconst jobs = [];\n// 1) Folge-Mails für laufende Leads\nif (E.folgeOffen) for (const it of $('Laufende Leads').all()) {\n  const L = it.json; if (!L || !L.token) continue;\n  const t1 = iso(L.m1); if (!t1) continue;\n  const end = t1 + 24 * H;\n  const last = Math.max(t1, iso(L.m2), iso(L.m2b), iso(L.m3));\n  let phase = null;\n  if (now >= end + 2 * H) phase = 'm4';\n  else if (now < end && now >= end - 3 * H) { if (L.m3 === '-') phase = 'm3'; }\n  else if (now < end - 3 * H && now - last >= 1 * H) {\n    if (L.m2 === '-' && now >= t1 + 8 * H) phase = 'm2';\n    else if (L.m2b === '-' && L.geklickt && L.geklickt !== '-' && now >= t1 + 2 * H) phase = 'm2b';\n  }\n  if (phase) jobs.push({ L, phase, end });\n}\n// 2) Erste Mail für neue Leads\nif (E.neu > 0) for (const it of $('Neue Leads').all()) {\n  const L = it.json; if (!L || !L.token || L.m1 !== '-') continue;\n  jobs.push({ L, phase: 'm1', end: now + 24 * H });\n}\nconst out = [];\nfor (const { L, phase, end } of jobs) {\n  const id = phase === 'm1' ? '1' + (['A', 'B', 'C'].includes(L.variante) ? L.variante : 'A') : phase.slice(1);\n  const T = MAILS[id]; if (!T) continue;\n  const name = String(L.vorname || '').trim().split(' ')[0].replace(/^-$/, '');\n  const q = 't=' + L.token + '&m=' + id + '&e=' + end;\n  const frist = fristText(end);\n  const rep = s => s.split('{{VORNAME_SP}}').join(name ? ' ' + name : '').split('{{VORNAME}}').join(name).split('{{FRIST}}').join(frist)\n    .split('{{KLICK}}').join(BASE + 'fp-c?' + q + '&z=lp').split('{{KLICK_CAL}}').join(BASE + 'fp-c?' + q + '&z=cal')\n    .split('{{ABMELDEN}}').join(BASE + 'fp-u?' + q).split('{{PIXEL}}').join(BASE + 'fp-o?' + q);\n  let subject = T.subject;\n  if (!name) subject = subject.replace(', {{VORNAME}}', '').replace('{{VORNAME}}', '');\n  let html = rep(T.html);\n  if (!name) html = html.split('Hey ,').join('Hey,');\n  const text = html.replace(/<style[\\s\\S]*?<\\/style>/g, '').replace(/<a [^>]*href=\"([^\"]+)\"[^>]*>([\\s\\S]*?)<\\/a>/g, '$2 ($1)').replace(/<br\\s*\\/?>/g, '\\n').replace(/<\\/(p|div|tr|h\\d)>/g, '\\n').replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/\\n\\s*\\n+/g, '\\n\\n').trim();\n  out.push({ json: { to: L.email, token: L.token, field: phase, mailId: id,\n    body: { FromEmailAddress: 'Adrian Lewu <adrian@mail.adrian-lewu.de>', ReplyToAddresses: ['team@ki-scale.com'], Destination: { ToAddresses: [L.email] },\n      Content: { Simple: { Subject: { Data: rep(subject), Charset: 'UTF-8' }, Body: { Html: { Data: html, Charset: 'UTF-8' }, Text: { Data: text, Charset: 'UTF-8' } },\n        Attachments: INLINE,\n        Headers: [{ Name: 'List-Unsubscribe', Value: '<' + BASE + 'fp-u?' + q + '>' }, { Name: 'List-Unsubscribe-Post', Value: 'List-Unsubscribe=One-Click' }] } } } } });\n}\nreturn out;\n"
+   },
+   "executeOnce": true
   },
   {
    "id": "8c9f1fab-a2a3-5be6-a48c-d26c9f9d4870",
@@ -441,7 +131,7 @@
    "type": "n8n-nodes-base.httpRequest",
    "typeVersion": 4.2,
    "position": [
-    1340,
+    1100,
     300
    ],
    "parameters": {
@@ -456,7 +146,7 @@
      "batching": {
       "batch": {
        "batchSize": 10,
-       "batchInterval": 1000
+       "batchInterval": 1100
       }
      }
     }
@@ -475,11 +165,11 @@
    "type": "n8n-nodes-base.code",
    "typeVersion": 2,
    "position": [
-    1560,
+    1320,
     300
    ],
    "parameters": {
-    "jsCode": "\nconst sent = $('Mails bauen').all();\nconst res = $input.all();\nconst ok = [], fail = [];\nres.forEach((r, i) => { const m = sent[i]?.json; if (!m) return; (r.json && r.json.MessageId ? ok : fail).push({ json: { token: m.token, field: m.field, mailId: m.mailId, fehler: r.json && r.json.error ? JSON.stringify(r.json.error).slice(0, 200) : '' } }); });\n$getWorkflowStaticData('global').letzterLauf = { zeit: new Date().toISOString(), ok: ok.length, fehler: fail.length };\nreturn ok.concat(fail.map(f => ({ json: { ...f.json, failed: true } })));\n"
+    "jsCode": "\nconst sent = $('Mails bauen').all();\nconst res = $input.all();\nconst ok = [], fail = [];\nres.forEach((r, i) => { const m = sent[i]?.json; if (!m) return; (r.json && r.json.MessageId ? ok : fail).push({ json: { token: m.token, field: m.field, mailId: m.mailId, fehler: r.json && r.json.error ? JSON.stringify(r.json.error).slice(0, 200) : '' } }); });\nconst sd = $getWorkflowStaticData('global');\nsd.heute = (sd.heute || 0) + ok.filter(o => o.json.field === 'm1').length;\nsd.letzterLauf = { zeit: new Date().toISOString(), ok: ok.length, fehler: fail.length, letzterFehler: fail[0] ? fail[0].json.fehler : '' };\nreturn ok.concat(fail.map(f => ({ json: { ...f.json, failed: true } })));\n"
    }
   },
   {
@@ -488,7 +178,7 @@
    "type": "n8n-nodes-base.dataTable",
    "typeVersion": 1.1,
    "position": [
-    1780,
+    1540,
     300
    ],
    "parameters": {
@@ -572,7 +262,7 @@
    "type": "n8n-nodes-base.dataTable",
    "typeVersion": 1.1,
    "position": [
-    2000,
+    1760,
     300
    ],
    "parameters": {
@@ -593,12 +283,13 @@
    "type": "n8n-nodes-base.code",
    "typeVersion": 2,
    "position": [
-    2220,
+    1980,
     300
    ],
    "parameters": {
     "jsCode": "\nconst stats = {}; for (const r of $('Zähler holen').all()) if (r.json && r.json.key) stats[r.json.key] = Number(r.json.anzahl) || 0;\nconst add = {}; for (const r of $('Ergebnis').all()) if (!r.json.failed) { const k = r.json.mailId + '|sent'; add[k] = (add[k] || 0) + 1; }\nreturn Object.entries(add).map(([key, n]) => ({ json: { key, mail: key.split('|')[0], typ: 'sent', anzahl: (stats[key] || 0) + n } }));\n"
-   }
+   },
+   "executeOnce": true
   },
   {
    "id": "9fddca43-8f2a-5d4a-9336-1ac2a5e5741f",
@@ -606,7 +297,7 @@
    "type": "n8n-nodes-base.dataTable",
    "typeVersion": 1.1,
    "position": [
-    2440,
+    2200,
     300
    ],
    "parameters": {
@@ -676,167 +367,40 @@
   }
  ],
  "connections": {
-  "Alle 5 Minuten": {
+  "Alle 10 Minuten": {
    "main": [
     [
      {
-      "node": "Plan",
+      "node": "Einstellungen",
       "type": "main",
       "index": 0
      }
     ]
    ]
   },
-  "Plan": {
+  "Einstellungen": {
    "main": [
     [
      {
-      "node": "Welche Mail?",
+      "node": "Laufende Leads",
       "type": "main",
       "index": 0
      }
     ]
    ]
   },
-  "Welche Mail?": {
+  "Laufende Leads": {
    "main": [
     [
      {
-      "node": "Leads Mail 1",
-      "type": "main",
-      "index": 0
-     }
-    ],
-    [
-     {
-      "node": "Leads Mail 2",
-      "type": "main",
-      "index": 0
-     }
-    ],
-    [
-     {
-      "node": "Leads Mail 2b",
-      "type": "main",
-      "index": 0
-     }
-    ],
-    [
-     {
-      "node": "Leads Mail 3",
-      "type": "main",
-      "index": 0
-     }
-    ],
-    [
-     {
-      "node": "Leads Mail 4",
+      "node": "Neue Leads",
       "type": "main",
       "index": 0
      }
     ]
    ]
   },
-  "Leads Mail 1": {
-   "main": [
-    [
-     {
-      "node": "Phase m1",
-      "type": "main",
-      "index": 0
-     }
-    ]
-   ]
-  },
-  "Phase m1": {
-   "main": [
-    [
-     {
-      "node": "Mails bauen",
-      "type": "main",
-      "index": 0
-     }
-    ]
-   ]
-  },
-  "Leads Mail 2": {
-   "main": [
-    [
-     {
-      "node": "Phase m2",
-      "type": "main",
-      "index": 0
-     }
-    ]
-   ]
-  },
-  "Phase m2": {
-   "main": [
-    [
-     {
-      "node": "Mails bauen",
-      "type": "main",
-      "index": 0
-     }
-    ]
-   ]
-  },
-  "Leads Mail 2b": {
-   "main": [
-    [
-     {
-      "node": "Phase m2b",
-      "type": "main",
-      "index": 0
-     }
-    ]
-   ]
-  },
-  "Phase m2b": {
-   "main": [
-    [
-     {
-      "node": "Mails bauen",
-      "type": "main",
-      "index": 0
-     }
-    ]
-   ]
-  },
-  "Leads Mail 3": {
-   "main": [
-    [
-     {
-      "node": "Phase m3",
-      "type": "main",
-      "index": 0
-     }
-    ]
-   ]
-  },
-  "Phase m3": {
-   "main": [
-    [
-     {
-      "node": "Mails bauen",
-      "type": "main",
-      "index": 0
-     }
-    ]
-   ]
-  },
-  "Leads Mail 4": {
-   "main": [
-    [
-     {
-      "node": "Phase m4",
-      "type": "main",
-      "index": 0
-     }
-    ]
-   ]
-  },
-  "Phase m4": {
+  "Neue Leads": {
    "main": [
     [
      {

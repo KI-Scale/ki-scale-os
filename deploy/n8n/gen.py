@@ -14,7 +14,7 @@ KASSE = 'https://myablefy.com/s/happyjobs/faceless-pages-mit-ki-6b2c71e9/payment
 KLICK_ZIEL = ("={{ (() => { const q = $json.query; const m = String(q.m || '').replace(/[^0-9a-zA-Z]/g,''); "
   "const utm = 'src=mail-' + m + '&utm_source=email&utm_campaign=fp197'; "
   "if (q.z === 'cal') return '" + CAL + "?' + utm; "
-  "const t = String(q.t || ''); const kasse = m !== '4' && parseInt(t.slice(-1), 16) % 2 === 1; "
+  "const t = String(q.t || ''); const abgelaufen = q.e && Date.now() > Number(q.e); const kasse = !abgelaufen && m !== '4' && parseInt(t.slice(-1), 16) % 2 === 1; "
   "return kasse ? '" + KASSE + "?' + utm + '&ziel=kasse' : '" + LP + "?' + utm + '&ziel=lp'; })() }}")
 PIX = 'https://cdn.jsdelivr.net/gh/KI-Scale/ki-scale-os@main/public/mail/p.gif'
 
