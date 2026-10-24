@@ -1,0 +1,709 @@
+{
+ "name": "Outreach | WhatsApp-Tracking & Heiße Leads",
+ "nodes": [
+  {
+   "id": "84c35a56-915c-5f43-89ab-8998086bb7b5",
+   "name": "WA Klick",
+   "type": "n8n-nodes-base.webhook",
+   "typeVersion": 2,
+   "position": [
+    0,
+    0
+   ],
+   "parameters": {
+    "path": "fp-w",
+    "httpMethod": "GET",
+    "responseMode": "responseNode",
+    "options": {}
+   },
+   "webhookId": "a1e2368e-60ad-57d8-8b9c-6e26dc132302"
+  },
+  {
+   "id": "677c8f34-f1a3-5b00-9a30-3fce28fb56f4",
+   "name": "WA Klick → Antwort",
+   "type": "n8n-nodes-base.respondToWebhook",
+   "typeVersion": 1.1,
+   "position": [
+    240,
+    0
+   ],
+   "parameters": {
+    "respondWith": "redirect",
+    "redirectURL": "https://faceless.adrian-lewu.de/b/?src=wa&utm_source=whatsapp&utm_campaign=fp197&ziel=lp",
+    "options": {}
+   }
+  },
+  {
+   "id": "de970b8c-00f5-5628-81fe-5e48883164fc",
+   "name": "WA Klick → Ereignis",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    480,
+    0
+   ],
+   "parameters": {
+    "jsCode": "\nconst q = $input.first().json.query || {};\nreturn [{ json: { token: String(q.t || '').replace(/[^a-z0-9]/gi, '').slice(0, 32), typ: 'click' } }];\n"
+   }
+  },
+  {
+   "id": "141c3074-b6be-5b17-9dec-d9bb228b9b0f",
+   "name": "WA gesendet",
+   "type": "n8n-nodes-base.webhook",
+   "typeVersion": 2,
+   "position": [
+    0,
+    200
+   ],
+   "parameters": {
+    "path": "fp-ws",
+    "httpMethod": "GET",
+    "responseMode": "responseNode",
+    "options": {}
+   },
+   "webhookId": "2b6a208e-6e28-5377-a005-fde20c208b25"
+  },
+  {
+   "id": "f22ecb15-7deb-55ec-97c5-fdf629160a99",
+   "name": "WA gesendet → Antwort",
+   "type": "n8n-nodes-base.respondToWebhook",
+   "typeVersion": 1.1,
+   "position": [
+    240,
+    200
+   ],
+   "parameters": {
+    "respondWith": "redirect",
+    "redirectURL": "https://cdn.jsdelivr.net/gh/KI-Scale/ki-scale-os@main/public/mail/p.gif",
+    "options": {}
+   }
+  },
+  {
+   "id": "b2271310-7b33-56f4-9a6d-83b7503b79cf",
+   "name": "WA gesendet → Ereignis",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    480,
+    200
+   ],
+   "parameters": {
+    "jsCode": "\nconst q = $input.first().json.query || {};\nreturn [{ json: { token: String(q.t || '').replace(/[^a-z0-9]/gi, '').slice(0, 32), typ: 'sent' } }];\n"
+   }
+  },
+  {
+   "id": "087adca9-20e1-5a56-aa61-2ebb2e84c753",
+   "name": "WA Ereignis",
+   "type": "n8n-nodes-base.noOp",
+   "typeVersion": 1,
+   "position": [
+    720,
+    100
+   ],
+   "parameters": {}
+  },
+  {
+   "id": "920a9ff0-cb64-52a8-8c3c-78cee30c10bf",
+   "name": "WA Lead holen",
+   "type": "n8n-nodes-base.dataTable",
+   "typeVersion": 1.1,
+   "position": [
+    940,
+    100
+   ],
+   "parameters": {
+    "operation": "get",
+    "dataTableId": {
+     "__rl": true,
+     "value": "__WA__",
+     "mode": "id"
+    },
+    "filters": {
+     "conditions": [
+      {
+       "keyName": "token",
+       "keyValue": "={{ $json.token }}"
+      }
+     ]
+    },
+    "limit": 1
+   },
+   "alwaysOutputData": true
+  },
+  {
+   "id": "3a82cfe5-f372-5115-823e-75a3c0420a6f",
+   "name": "WA Entscheiden",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    1160,
+    100
+   ],
+   "parameters": {
+    "jsCode": "\nconst ev = $('WA Ereignis').first().json;\nconst L = $input.first().json || {};\nif (!L.token) return [];\nconst now = new Date().toISOString();\nlet upd = {}, key = null;\nif (ev.typ === 'click') { upd.klicks = String((Number(L.klicks) || 0) + 1); if (!L.geklickt || L.geklickt === '-') { upd.geklickt = now; key = 'wa|click'; } }\nif (ev.typ === 'sent') { if (!L.gesendet || L.gesendet === '-') { upd.gesendet = now; key = 'wa|sent'; } }\nif (!Object.keys(upd).length) return [];\nreturn [{ json: { token: L.token, upd, key } }];\n"
+   }
+  },
+  {
+   "id": "7f55a093-bb7e-56b0-9867-414f526dfbca",
+   "name": "WA Lead aktualisieren",
+   "type": "n8n-nodes-base.dataTable",
+   "typeVersion": 1.1,
+   "position": [
+    1380,
+    100
+   ],
+   "parameters": {
+    "operation": "update",
+    "dataTableId": {
+     "__rl": true,
+     "value": "__WA__",
+     "mode": "id"
+    },
+    "filters": {
+     "conditions": [
+      {
+       "keyName": "token",
+       "keyValue": "={{ $json.token }}"
+      }
+     ]
+    },
+    "columns": {
+     "mappingMode": "defineBelow",
+     "value": {
+      "gesendet": "={{ $json.upd.gesendet ?? $('WA Lead holen').first().json.gesendet }}",
+      "geklickt": "={{ $json.upd.geklickt ?? $('WA Lead holen').first().json.geklickt }}",
+      "klicks": "={{ $json.upd.klicks ?? $('WA Lead holen').first().json.klicks }}"
+     },
+     "matchingColumns": [],
+     "schema": [
+      {
+       "id": "gesendet",
+       "displayName": "gesendet",
+       "required": false,
+       "defaultMatch": false,
+       "display": true,
+       "type": "string",
+       "canBeUsedToMatch": true
+      },
+      {
+       "id": "geklickt",
+       "displayName": "geklickt",
+       "required": false,
+       "defaultMatch": false,
+       "display": true,
+       "type": "string",
+       "canBeUsedToMatch": true
+      },
+      {
+       "id": "klicks",
+       "displayName": "klicks",
+       "required": false,
+       "defaultMatch": false,
+       "display": true,
+       "type": "string",
+       "canBeUsedToMatch": true
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "24e7dbb5-ebd4-54ab-970b-22c4e3809bda",
+   "name": "WA Zähler holen",
+   "type": "n8n-nodes-base.dataTable",
+   "typeVersion": 1.1,
+   "position": [
+    1600,
+    100
+   ],
+   "parameters": {
+    "operation": "get",
+    "dataTableId": {
+     "__rl": true,
+     "value": "__STATS__",
+     "mode": "id"
+    },
+    "filters": {
+     "conditions": [
+      {
+       "keyName": "key",
+       "keyValue": "={{ $('WA Entscheiden').first().json.key || '__keiner__' }}"
+      }
+     ]
+    },
+    "limit": 1
+   },
+   "alwaysOutputData": true
+  },
+  {
+   "id": "870c0078-7a2b-54ff-8d62-8685a4c44037",
+   "name": "WA Plus eins",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    1820,
+    100
+   ],
+   "parameters": {
+    "jsCode": "\nconst d = $('WA Entscheiden').first().json;\nif (!d.key) return [];\nconst cur = $input.first().json || {};\nreturn [{ json: { key: d.key, mail: 'wa', typ: d.key.split('|')[1], anzahl: (Number(cur.anzahl) || 0) + 1 } }];\n"
+   }
+  },
+  {
+   "id": "1c8cfa1b-f07a-596f-8ac4-c25cf729c91d",
+   "name": "WA Zähler speichern",
+   "type": "n8n-nodes-base.dataTable",
+   "typeVersion": 1.1,
+   "position": [
+    2040,
+    100
+   ],
+   "parameters": {
+    "operation": "upsert",
+    "dataTableId": {
+     "__rl": true,
+     "value": "__STATS__",
+     "mode": "id"
+    },
+    "filters": {
+     "conditions": [
+      {
+       "keyName": "key",
+       "keyValue": "={{ $json.key }}"
+      }
+     ]
+    },
+    "columns": {
+     "mappingMode": "defineBelow",
+     "value": {
+      "key": "={{ $json.key }}",
+      "mail": "={{ $json.mail }}",
+      "typ": "={{ $json.typ }}",
+      "anzahl": "={{ $json.anzahl }}"
+     },
+     "matchingColumns": [],
+     "schema": [
+      {
+       "id": "key",
+       "displayName": "key",
+       "required": false,
+       "defaultMatch": false,
+       "display": true,
+       "type": "string",
+       "canBeUsedToMatch": true
+      },
+      {
+       "id": "mail",
+       "displayName": "mail",
+       "required": false,
+       "defaultMatch": false,
+       "display": true,
+       "type": "string",
+       "canBeUsedToMatch": true
+      },
+      {
+       "id": "typ",
+       "displayName": "typ",
+       "required": false,
+       "defaultMatch": false,
+       "display": true,
+       "type": "string",
+       "canBeUsedToMatch": true
+      },
+      {
+       "id": "anzahl",
+       "displayName": "anzahl",
+       "required": false,
+       "defaultMatch": false,
+       "display": true,
+       "type": "number",
+       "canBeUsedToMatch": true
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "a363ff61-f6e1-58d4-91ea-0024068867c0",
+   "name": "Heiße Leads",
+   "type": "n8n-nodes-base.webhook",
+   "typeVersion": 2,
+   "position": [
+    0,
+    500
+   ],
+   "parameters": {
+    "path": "fp-heiss",
+    "httpMethod": "GET",
+    "responseMode": "responseNode",
+    "options": {}
+   },
+   "webhookId": "6095865c-0d5f-57bb-a12a-e4f124bbedeb"
+  },
+  {
+   "id": "0874b43f-8830-52c2-b26c-f7c2ea092149",
+   "name": "Zugang prüfen",
+   "type": "n8n-nodes-base.if",
+   "typeVersion": 2.2,
+   "position": [
+    240,
+    500
+   ],
+   "parameters": {
+    "conditions": {
+     "options": {
+      "caseSensitive": true,
+      "leftValue": "",
+      "typeValidation": "strict",
+      "version": 2
+     },
+     "conditions": [
+      {
+       "id": "k1",
+       "leftValue": "={{ $json.query.k }}",
+       "rightValue": "__KEY__",
+       "operator": {
+        "type": "string",
+        "operation": "equals"
+       }
+      }
+     ],
+     "combinator": "and"
+    },
+    "options": {}
+   }
+  },
+  {
+   "id": "cd162f08-04b5-5b1c-953a-24df1cbaa912",
+   "name": "WA-Klicker",
+   "type": "n8n-nodes-base.dataTable",
+   "typeVersion": 1.1,
+   "position": [
+    480,
+    440
+   ],
+   "parameters": {
+    "operation": "get",
+    "dataTableId": {
+     "__rl": true,
+     "value": "__WA__",
+     "mode": "id"
+    },
+    "matchType": "allConditions",
+    "filters": {
+     "conditions": [
+      {
+       "keyName": "geklickt",
+       "condition": "neq",
+       "keyValue": "-"
+      },
+      {
+       "keyName": "gekauft",
+       "keyValue": "-"
+      }
+     ]
+    },
+    "returnAll": true
+   },
+   "alwaysOutputData": true,
+   "executeOnce": true
+  },
+  {
+   "id": "c07e257b-f594-5a7a-a331-4a67b695e54d",
+   "name": "Mail-Klicker",
+   "type": "n8n-nodes-base.dataTable",
+   "typeVersion": 1.1,
+   "position": [
+    700,
+    440
+   ],
+   "parameters": {
+    "operation": "get",
+    "dataTableId": {
+     "__rl": true,
+     "value": "__LEADS__",
+     "mode": "id"
+    },
+    "matchType": "allConditions",
+    "filters": {
+     "conditions": [
+      {
+       "keyName": "geklickt",
+       "condition": "neq",
+       "keyValue": "-"
+      },
+      {
+       "keyName": "gekauft",
+       "keyValue": "-"
+      },
+      {
+       "keyName": "status",
+       "keyValue": "aktiv"
+      }
+     ]
+    },
+    "returnAll": true
+   },
+   "alwaysOutputData": true,
+   "executeOnce": true
+  },
+  {
+   "id": "3fc01d19-d573-51ea-b36a-796bc5834c13",
+   "name": "Liste bauen",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    920,
+    440
+   ],
+   "parameters": {
+    "jsCode": "// n8n Code-Knoten „Liste bauen“: alle, die auf den Link geklickt, aber noch nicht gekauft haben.\nconst wa = $('WA-Klicker').all().map(i => i.json).filter(r => r && r.token);\nconst ml = $('Mail-Klicker').all().map(i => i.json).filter(r => r && r.token);\nconst esc = s => String(s ?? '').replace(/[&<>\"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;' }[c]));\nconst clean = v => (v && v !== '-') ? v : '';\nconst when = iso => { const t = Date.parse(iso); if (!t) return ''; const m = Math.round((Date.now() - t) / 60000);\n  return m < 60 ? `vor ${m} Min.` : m < 1440 ? `vor ${Math.round(m / 60)} Std.` : new Date(t).toLocaleDateString('de-DE', { timeZone: 'Europe/Berlin', day: 'numeric', month: 'short' }); };\nconst first = r => (clean(r.vorname) || '').split(' ')[0];\nconst nachfass = r => `Hey${first(r) ? ' ' + first(r) : ''}, Adrian hier nochmal 🙂 Ich hab gesehen, dass du dir die Seite zu „Faceless Pages mit KI“ angeschaut hast. Gibt es noch eine Frage, bei der ich dir helfen kann? Wenn du magst, ruf ich dich auch kurz an – wann passt es dir?`;\nconst digits = p => String(p || '').replace(/\\D/g, '');\nconst row = (r, src) => {\n  const tel = clean(r.telefon);\n  const name = clean(r.name) || [clean(r.vorname), clean(r.nachname)].filter(Boolean).join(' ') || clean(r.email);\n  const info = src === 'wa' ? `${esc(clean(r.close_status))} · ${Number(r.klicks) || 1}× geklickt` : `Mail ${esc(String(r.geklickt).split(',').join(', '))} geklickt`;\n  const t = src === 'wa' ? r.geklickt : (r.m4 !== '-' ? r.m4 : r.m3 !== '-' ? r.m3 : r.m2 !== '-' ? r.m2 : r.m1);\n  return `<article class=\"row\"><div class=\"who\"><b>${esc(name)}</b><span class=\"tag ${src}\">${src === 'wa' ? 'WhatsApp' : 'E-Mail'}</span><div class=\"sub\">${info}${t && src === 'wa' ? ' · ' + when(t) : ''}</div></div>\n  <div class=\"tel\">${tel ? esc(tel) : '<span class=\"sub\">keine Nummer</span>'}${clean(r.email) ? `<div class=\"sub\">${esc(r.email)}</div>` : ''}</div>\n  <div class=\"btns\">${tel ? `<a class=\"btn wa\" target=\"_blank\" rel=\"noopener\" href=\"https://wa.me/${digits(tel)}?text=${encodeURIComponent(nachfass(r))}\">Nachfassen per WhatsApp</a><a class=\"btn\" href=\"tel:${esc(tel)}\">Anrufen</a>` : ''}${clean(r.lead_id) ? `<a class=\"btn\" target=\"_blank\" rel=\"noopener\" href=\"https://app.close.com/lead/${esc(r.lead_id)}/\">Close</a>` : ''}</div></article>`;\n};\nwa.sort((a, b) => Date.parse(b.geklickt) - Date.parse(a.geklickt));\nconst now = new Date().toLocaleString('de-DE', { timeZone: 'Europe/Berlin', dateStyle: 'medium', timeStyle: 'short' });\nconst html = `<!doctype html><html lang=\"de\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><meta http-equiv=\"refresh\" content=\"120\"><meta name=\"robots\" content=\"noindex\"><title>Heiße Leads</title>\n<style>:root{--bg:#f6f8f5;--panel:#fff;--line:#e1e7de;--fg:#141a15;--muted:#5b675d;--accent:#2f8a14;--soft:#eaf5e3;--wa:#1f9d55;--mail:#2d5fa8;--msoft:#e8eef8}\n*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 \"Helvetica Neue\",Arial,sans-serif}\n.wrap{max-width:1000px;margin:0 auto;padding:22px max(16px,env(safe-area-inset-left)) 60px;display:grid;gap:14px}\n.eyebrow{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);font-weight:700}h1{font:600 34px/1.1 Georgia,serif;margin:2px 0 4px}.sub{color:var(--muted);font-size:13px}\n.stats{display:flex;gap:10px;flex-wrap:wrap}.stat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 14px;min-width:140px}.stat b{display:block;font-size:24px}\nh2{font:600 20px Georgia,serif;margin:10px 0 0}.list{display:grid;gap:8px}\n.row{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) auto;gap:12px;align-items:center}\n.who b{margin-right:8px}.tag{font-size:11px;font-weight:700;border-radius:999px;padding:2px 8px}.tag.wa{background:var(--soft);color:var(--accent)}.tag.mail{background:var(--msoft);color:var(--mail)}\n.tel{font-weight:600;font-variant-numeric:tabular-nums;min-width:0;overflow-wrap:anywhere}.btns{display:flex;gap:6px;flex-wrap:wrap}\n.btn{border:1px solid var(--line);background:var(--panel);color:var(--fg);border-radius:9px;padding:7px 11px;font-weight:600;font-size:13px;text-decoration:none}.btn.wa{background:var(--wa);border-color:var(--wa);color:#fff}\n.empty{background:var(--panel);border:1px dashed var(--line);border-radius:12px;padding:16px;color:var(--muted)}\n@media(max-width:720px){.row{grid-template-columns:1fr}}</style></head><body><div class=\"wrap\">\n<div><div class=\"eyebrow\">KI-Scale · Faceless Pages mit KI</div><h1>Heiße Leads</h1><div class=\"sub\">Haben auf den Link geklickt, aber noch nicht gekauft. Jetzt nachfassen oder anrufen. Stand ${now}, aktualisiert sich alle 2 Minuten.</div></div>\n<div class=\"stats\"><div class=\"stat\"><b>${wa.length}</b><span class=\"sub\">aus WhatsApp</span></div><div class=\"stat\"><b>${ml.length}</b><span class=\"sub\">aus E-Mail</span></div></div>\n<h2>Aus WhatsApp</h2><div class=\"list\">${wa.map(r => row(r, 'wa')).join('') || '<div class=\"empty\">Noch niemand. Sobald jemand auf den Link in der WhatsApp-Nachricht tippt, steht er hier.</div>'}</div>\n<h2>Aus E-Mail</h2><div class=\"list\">${ml.slice(0, 500).map(r => row(r, 'mail')).join('') || '<div class=\"empty\">Noch niemand. Sobald jemand in einer Mail auf den Knopf klickt, steht er hier.</div>'}</div>\n</div></body></html>`;\nreturn [{ json: { html } }];\n"
+   },
+   "executeOnce": true
+  },
+  {
+   "id": "cac51064-cad4-5cd6-a72c-a1c154f9edea",
+   "name": "Liste ausliefern",
+   "type": "n8n-nodes-base.respondToWebhook",
+   "typeVersion": 1.1,
+   "position": [
+    1140,
+    440
+   ],
+   "parameters": {
+    "respondWith": "text",
+    "responseBody": "={{ $json.html }}",
+    "options": {
+     "responseHeaders": {
+      "entries": [
+       {
+        "name": "Content-Type",
+        "value": "text/html; charset=utf-8"
+       },
+       {
+        "name": "Cache-Control",
+        "value": "no-store"
+       }
+      ]
+     }
+    }
+   }
+  },
+  {
+   "id": "473cab88-02aa-5da7-a674-c8df67e93737",
+   "name": "Kein Zugang (Liste)",
+   "type": "n8n-nodes-base.respondToWebhook",
+   "typeVersion": 1.1,
+   "position": [
+    480,
+    600
+   ],
+   "parameters": {
+    "respondWith": "text",
+    "responseBody": "Kein Zugang",
+    "options": {
+     "responseCode": 403
+    }
+   }
+  }
+ ],
+ "connections": {
+  "WA Klick": {
+   "main": [
+    [
+     {
+      "node": "WA Klick → Antwort",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "WA Klick → Antwort": {
+   "main": [
+    [
+     {
+      "node": "WA Klick → Ereignis",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "WA Klick → Ereignis": {
+   "main": [
+    [
+     {
+      "node": "WA Ereignis",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "WA gesendet": {
+   "main": [
+    [
+     {
+      "node": "WA gesendet → Antwort",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "WA gesendet → Antwort": {
+   "main": [
+    [
+     {
+      "node": "WA gesendet → Ereignis",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "WA gesendet → Ereignis": {
+   "main": [
+    [
+     {
+      "node": "WA Ereignis",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "WA Ereignis": {
+   "main": [
+    [
+     {
+      "node": "WA Lead holen",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "WA Lead holen": {
+   "main": [
+    [
+     {
+      "node": "WA Entscheiden",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "WA Entscheiden": {
+   "main": [
+    [
+     {
+      "node": "WA Lead aktualisieren",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "WA Lead aktualisieren": {
+   "main": [
+    [
+     {
+      "node": "WA Zähler holen",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "WA Zähler holen": {
+   "main": [
+    [
+     {
+      "node": "WA Plus eins",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "WA Plus eins": {
+   "main": [
+    [
+     {
+      "node": "WA Zähler speichern",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Heiße Leads": {
+   "main": [
+    [
+     {
+      "node": "Zugang prüfen",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Zugang prüfen": {
+   "main": [
+    [
+     {
+      "node": "WA-Klicker",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Kein Zugang (Liste)",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "WA-Klicker": {
+   "main": [
+    [
+     {
+      "node": "Mail-Klicker",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Mail-Klicker": {
+   "main": [
+    [
+     {
+      "node": "Liste bauen",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Liste bauen": {
+   "main": [
+    [
+     {
+      "node": "Liste ausliefern",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  }
+ },
+ "settings": {
+  "executionOrder": "v1",
+  "saveDataSuccessExecution": "none"
+ }
+}
