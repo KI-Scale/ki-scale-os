@@ -74,7 +74,7 @@
    ],
    "parameters": {
     "respondWith": "redirect",
-    "redirectURL": "={{ ($json.query.z === 'cal' ? 'https://calendly.com/ksbteam/kostenloses-mehrwertgespraech' : 'https://faceless.adrian-lewu.de/b/') + '?src=mail-' + String($json.query.m || '').replace(/[^0-9a-zA-Z]/g,'') + '&utm_source=email&utm_campaign=fp197' }}",
+    "redirectURL": "={{ (() => { const q = $json.query; const m = String(q.m || '').replace(/[^0-9a-zA-Z]/g,''); const utm = 'src=mail-' + m + '&utm_source=email&utm_campaign=fp197'; if (q.z === 'cal') return 'https://calendly.com/ksbteam/kostenloses-mehrwertgespraech?' + utm; const t = String(q.t || ''); const kasse = m !== '4' && parseInt(t.slice(-1), 16) % 2 === 1; return kasse ? 'https://myablefy.com/s/happyjobs/faceless-pages-mit-ki-6b2c71e9/payment?' + utm + '&ziel=kasse' : 'https://faceless.adrian-lewu.de/b/?' + utm + '&ziel=lp'; })() }}",
     "options": {}
    }
   },

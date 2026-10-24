@@ -8,6 +8,14 @@ D = os.path.dirname(os.path.abspath(__file__))
 BASE = 'https://n8n.ki-scale.com/webhook/'
 LP = 'https://faceless.adrian-lewu.de/b/'
 CAL = 'https://calendly.com/ksbteam/kostenloses-mehrwertgespraech'
+KASSE = 'https://myablefy.com/s/happyjobs/faceless-pages-mit-ki-6b2c71e9/payment'
+# Test „Verkaufsseite vs. direkt zur Kasse“: Token-Endziffer gerade → Verkaufsseite, ungerade → Kasse.
+# Nur Mails vor Fristende (1A/1B/1C/2/2b/3); Mail 4 (nach Ablauf) immer Verkaufsseite.
+KLICK_ZIEL = ("={{ (() => { const q = $json.query; const m = String(q.m || '').replace(/[^0-9a-zA-Z]/g,''); "
+  "const utm = 'src=mail-' + m + '&utm_source=email&utm_campaign=fp197'; "
+  "if (q.z === 'cal') return '" + CAL + "?' + utm; "
+  "const t = String(q.t || ''); const kasse = m !== '4' && parseInt(t.slice(-1), 16) % 2 === 1; "
+  "return kasse ? '" + KASSE + "?' + utm + '&ziel=kasse' : '" + LP + "?' + utm + '&ziel=lp'; })() }}")
 PIX = 'https://cdn.jsdelivr.net/gh/KI-Scale/ki-scale-os@main/public/mail/p.gif'
 
 def dt(table): return {"__rl": True, "value": table, "mode": "id"}
@@ -58,7 +66,7 @@ def link(a, b, idx=0):
 y = 0
 for name, path, method, typ, resp in [
     ('Öffnen', 'fp-o', 'GET', 'open', dict(respondWith='redirect', redirectURL=PIX, options={})),
-    ('Klick', 'fp-c', 'GET', 'click', dict(respondWith='redirect', redirectURL="={{ ($json.query.z === 'cal' ? '" + CAL + "' : '" + LP + "') + '?src=mail-' + String($json.query.m || '').replace(/[^0-9a-zA-Z]/g,'') + '&utm_source=email&utm_campaign=fp197' }}", options={})),
+    ('Klick', 'fp-c', 'GET', 'click', dict(respondWith='redirect', redirectURL=KLICK_ZIEL, options={})),
     ('Abmelden (Klick im Postfach)', 'fp-u', 'POST', 'unsub', dict(respondWith='text', responseBody=UNSUB_DONE, options=HTML_HDR)),
 ]:
     w = webhook(name, path, method, 0, y); r = respond(name + ' → Antwort', 260, y, **resp)
