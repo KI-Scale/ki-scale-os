@@ -4,7 +4,7 @@ Für alle vier gilt:
 - **Variable {{1}}** im Text = Vorname (Beispielwert: `Sarah`)
 - **Knopf:** „Website besuchen“ → Text `Alle Infos ansehen` → URL **dynamisch** → `https://n8n.ki-scale.com/webhook/fp-w?t={{1}}` (Beispielwert: `5817bb538df1`)
 - **Fußzeile:** `Keine Nachrichten mehr? Antworte mit STOP.`
-- Der Versand stoppt automatisch, sobald 20 Plätze über WhatsApp verkauft sind.
+- Frist: Der persönliche Link führt 72 Std. nach dem Versand nicht mehr zum Angebot, sondern zur Terminbuchung.
 
 Text (Absatz 2 je Vorlage unterschiedlich):
 

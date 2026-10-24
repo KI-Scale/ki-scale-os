@@ -13,7 +13,7 @@ const MODUS = 'aus';          // 'aus' | 'live'
 const PRO_TAG = 100;          // Nachrichten pro Tag
 const VON = 9, BIS = 20;      // nur zwischen 9 und 20 Uhr (deutsche Zeit)
 const PHONE_ID = '__PHONE_ID__';
-const PLAETZE = 20;           // nur 20 Plätze zu 197 € – danach stoppt der Versand automatisch
+const PLAETZE = 1000000;      // keine Platzgrenze (Verknappung läuft über die 72-Std.-Frist pro Lead)
 // =========================
 if (MODUS === 'aus' || PHONE_ID.startsWith('__')) return [];
 const verkauft = Number(($('Plätze prüfen').first().json || {}).anzahl) || 0;
