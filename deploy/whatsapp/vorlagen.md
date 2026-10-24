@@ -8,11 +8,11 @@ Für alle vier gilt:
 
 Text (Absatz 2 je Vorlage unterschiedlich):
 
-Hey {{1}}, hier ist Adrian von KI-Scale 👋
+Hey {{1}}, Adrian hier 👋
 
-Ich weiß, dass du Lust hast, dir online etwas aufzubauen – wir hatten ja schon mal Kontakt. [ABSATZ]
+Du hattest dich vor einiger Zeit bei uns eingetragen und mit jemandem aus meinem Team gesprochen. Du wolltest dir ja auch etwas aufbauen. [ABSATZ]
 
-Ehrlich gesagt ist da draußen gerade so viel Abzocke unterwegs: Coachings für 5.000, 10.000 oder 15.000 €, und am Ende stehst du mit einem Haufen Videos da und weißt nicht, wo du anfangen sollst.
+Ich weiß, da draußen sind gerade so viele Scammer unterwegs: Coachings für 5.000, 10.000 oder 15.000 €, und am Ende stehst du mit einem Haufen Videos da und weißt nicht, wo du anfangen sollst.
 
 Deshalb habe ich etwas gebaut, das dir wirklich weiterhilft: Ich zeige dir, wie du mit anonymen Instagram-Themenseiten und KI dein Nebeneinkommen aufbaust und über Kooperationen mit Firmen Geld verdienst. Ohne dein Gesicht zu zeigen, ohne selbst etwas verkaufen zu müssen und ohne Tausende Euro bei anderen zu lassen.
 
@@ -21,7 +21,7 @@ Später kostet das 2.400 €. Weil wir schon mal Kontakt hatten, bekommst du es 
 Fragen? Schreib mir einfach hier 🙂
 
 [ABSATZ] je Vorlage:
-- fp_geld: Damals war ein großes Coaching finanziell nicht drin, und das verstehe ich total.
-- fp_zeit: Damals war neben allem anderen kaum Zeit, und das verstehe ich total.
-- fp_termin: Unser Termin damals hat nicht geklappt – kein Ding, das passiert.
-- fp_standard: Ich weiß noch, dass du dir unbedingt etwas Eigenes aufbauen wolltest.
+- fp_geld: Damals war ein großes Coaching finanziell nicht drin – total verständlich.
+- fp_zeit: Damals war zeitlich einfach zu viel los – total verständlich.
+- fp_termin: Euer Termin hat dann nicht geklappt – kein Ding.
+- fp_standard: (kein zusätzlicher Satz)
