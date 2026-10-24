@@ -5,13 +5,13 @@ for (const r of rows) S[r.key] = Number(r.anzahl) || 0;
 const g = (m, t) => S[m + '|' + t] || 0;
 const CDN = 'https://cdn.jsdelivr.net/gh/KI-Scale/ki-scale-os@main/public/mail/';
 const MAILS = [
-  { id: '1A', name: 'Mail 1 · Variante A „Geschichte“', when: 'Start', who: '⅓ aller Leads', th: 'th1.jpg', ab: 1 },
-  { id: '1B', name: 'Mail 1 · Variante B „Kurz & direkt“', when: 'Start', who: '⅓ aller Leads', th: 'th1b.jpg', ab: 1 },
-  { id: '1C', name: 'Mail 1 · Variante C „Coaching-Falle“', when: 'Start', who: '⅓ aller Leads', th: 'th1c.jpg', ab: 1 },
+  { id: '1A', name: 'Mail 1 · Variante A „Geschichte“', when: 'sofort', who: '⅓ der Leads', th: 'th1.jpg', ab: 1 },
+  { id: '1B', name: 'Mail 1 · Variante B „Kurz & direkt“', when: 'sofort', who: '⅓ der Leads', th: 'th1b.jpg', ab: 1 },
+  { id: '1C', name: 'Mail 1 · Variante C „Coaching-Falle“', when: 'sofort', who: '⅓ der Leads', th: 'th1c.jpg', ab: 1 },
   { id: '2', name: 'Mail 2 · Fragen & Antworten', when: 'nach ca. 8 Std.', who: 'Nicht-Käufer', th: 'th2.jpg' },
-  { id: '2b', name: 'Mail 2b · Klick ohne Kauf', when: '1 Std. nach Klick', who: 'Klicker ohne Kauf', th: 'th2b.jpg' },
+  { id: '2b', name: 'Mail 2b · Klick ohne Kauf', when: 'ab 2 Std., nach Klick', who: 'Klicker ohne Kauf', th: 'th2b.jpg' },
   { id: '3', name: 'Mail 3 · Letzte Stunden', when: '3 Std. vor Ende', who: 'Nicht-Käufer', th: 'th3.jpg' },
-  { id: '4', name: 'Mail 4 · Nach Ablauf', when: 'nach Ablauf', who: 'Nicht-Käufer', th: 'th4.jpg' },
+  { id: '4', name: 'Mail 4 · Nach Ablauf', when: '2 Std. nach Fristende', who: 'Nicht-Käufer', th: 'th4.jpg' },
 ];
 const PRICE = 197;
 const fmt = n => n.toLocaleString('de-DE');
@@ -20,7 +20,7 @@ const eur = n => n.toLocaleString('de-DE') + ' €';
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 let T = { sent: 0, open: 0, click: 0, buy: 0, unsub: 0, bounce: 0, complaint: 0 };
 for (const m of MAILS) for (const k in T) T[k] += g(m.id, k);
-T.bounce += g('all', 'bounce'); T.complaint += g('all', 'complaint'); T.buy += g('x', 'buy');
+T.bounce += g('all', 'bounce'); T.complaint += g('all', 'complaint'); T.buy += g('ohne', 'buy');
 const now = new Date().toLocaleString('de-DE', { timeZone: 'Europe/Berlin', dateStyle: 'medium', timeStyle: 'short' });
 const kpi = (l, v, s) => `<div class="kpi"><div class="l">${l}</div><div class="v">${v}</div><div class="s">${s}</div></div>`;
 const bar = (l, v, base) => `<div class="frow"><span>${l}</span><div class="bar"><i style="width:${base ? Math.max(.4, v / base * 100) : 0}%"></i></div><span class="n">${fmt(v)}<small>${pct(v, base)}</small></span></div>`;
@@ -45,7 +45,7 @@ h1{font:600 36px/1.1 Georgia,serif;margin:2px 0 0}h2{font:600 22px Georgia,serif
 .health{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}.h{border:1px solid var(--line);border-radius:12px;padding:12px 14px}.h .v{font:700 22px Arial}.pill{font-size:11px;font-weight:700;border-radius:999px;padding:2px 8px;margin-left:6px}.pill.g{background:var(--soft);color:var(--accent)}.pill.w{background:var(--wsoft);color:var(--warn)}.pill.b{background:var(--bsoft);color:var(--bad)}
 @media(max-width:560px){.frow{grid-template-columns:100px 1fr 80px;font-size:13px}.mini{grid-template-columns:repeat(2,1fr)}}
 </style></head><body><div class="wrap">
-<div class="top"><div><div class="eyebrow">KI-Scale · Faceless Pages mit KI · 197 € statt 2.400 €</div><h1>Outreach-Zentrale</h1></div><div class="live"><b>● live</b> · Stand ${now} · aktualisiert sich jede Minute</div></div>
+<div class="top"><div><div class="eyebrow">KI-Scale · Faceless Pages mit KI · 1.000 Leads pro Tag · jeder mit eigener 24-Std.-Frist</div><h1>Outreach-Zentrale</h1></div><div class="live"><b>● live</b> · Stand ${now} · aktualisiert sich jede Minute</div></div>
 <div class="card"><div class="head"><h2>Überblick E-Mail</h2></div><div class="kpis">
 ${kpi('Versendet', fmt(T.sent), 'Mails gesamt')}${kpi('Öffnungsrate', pct(T.open, T.sent), 'Richtwert (Apple zählt mit)')}${kpi('Klickrate', pct(T.click, T.sent), 'auf den Kauf-Knopf')}${kpi('Käufe', fmt(T.buy), pct(T.buy, T.sent) + ' der Mails')}${kpi('Umsatz', eur(T.buy * PRICE), 'à 197 €')}${kpi('Abgemeldet', fmt(T.unsub), pct(T.unsub, T.sent))}
 </div></div>
@@ -54,6 +54,9 @@ ${bar('Versendet', T.sent, T.sent)}${bar('Zugestellt', Math.max(0, T.sent - T.bo
 </div></div>
 <div class="card"><div class="head"><h2>A/B/C-Test · Mail 1</h2><span class="note">Gewinner = meiste Käufe pro 1.000 Mails</span></div><div class="ab">
 ${abs.map(m => `<article class="var ${best === m ? 'lead' : ''}"><a class="th" href="${CDN}${m.th}" target="_blank"><img src="${CDN}${m.th}" alt=""></a><div class="vb"><div style="display:flex;justify-content:space-between;gap:8px"><b>${esc(m.name)}</b>${best === m ? '<span class="badge">führt</span>' : ''}</div><div class="mini"><div><span>Versendet</span><b>${fmt(g(m.id, 'sent'))}</b></div><div><span>Öffnung</span><b>${pct(g(m.id, 'open'), g(m.id, 'sent'))}</b></div><div><span>Klicks</span><b>${pct(g(m.id, 'click'), g(m.id, 'sent'))}</b></div><div><span>Käufe</span><b>${fmt(g(m.id, 'buy'))}</b></div></div></div></article>`).join('')}
+</div></div>
+<div class="card"><div class="head"><h2>Test · Verkaufsseite oder direkt zur Kasse?</h2><span class="note">Je die Hälfte der Leads · gleiche Mails, anderes Ziel hinter dem Knopf</span></div><div class="ab">
+${[['lp','Erst auf die Verkaufsseite'],['kasse','Direkt zur Kasse (ablefy)']].map(([k,n]) => { const b = g('ziel-' + k, 'buy'), o = g('ziel-' + (k === 'lp' ? 'kasse' : 'lp'), 'buy'); return `<article class="var ${b > o ? 'lead' : ''}"><div class="vb"><div style="display:flex;justify-content:space-between;gap:8px"><b>${n}</b>${b > o ? '<span class="badge">führt</span>' : ''}</div><div class="mini" style="grid-template-columns:repeat(2,1fr)"><div><span>Käufe</span><b>${fmt(b)}</b></div><div><span>Umsatz</span><b>${eur(b * PRICE)}</b></div></div></div></article>`; }).join('')}
 </div></div>
 <div class="card"><div class="head"><h2>Sequenz · alle Mails</h2><span class="note">Follow-ups gehen nur an Nicht-Käufer</span></div><div class="tw"><table><thead><tr><th>Mail</th><th></th><th>Wann · an wen</th><th class="r">Versendet</th><th class="r">Geöffnet</th><th class="r">Geklickt</th><th class="r">Abgemeldet</th><th class="r">Käufe</th><th class="r">Umsatz</th></tr></thead><tbody>
 ${MAILS.map(m => `<tr><td><b>${esc(m.name)}</b></td><td><a class="tm" href="${CDN}${m.th}" target="_blank"><img src="${CDN}${m.th}" style="width:100%"></a></td><td>${m.when}<div class="note">${m.who}</div></td><td class="r">${fmt(g(m.id, 'sent'))}</td><td class="r">${pct(g(m.id, 'open'), g(m.id, 'sent'))}</td><td class="r">${pct(g(m.id, 'click'), g(m.id, 'sent'))}</td><td class="r">${fmt(g(m.id, 'unsub'))}</td><td class="r">${fmt(g(m.id, 'buy'))}</td><td class="r">${eur(g(m.id, 'buy') * PRICE)}</td></tr>`).join('')}
