@@ -85,6 +85,18 @@ nodes += [w, chk, g1, g2, c, r, no]
 link('Heiße Leads', 'Zugang prüfen'); link('Zugang prüfen', 'WA-Klicker', 0); link('Zugang prüfen', 'Kein Zugang (Liste)', 1)
 link('WA-Klicker', 'Mail-Klicker'); link('Mail-Klicker', 'Liste bauen'); link('Liste bauen', 'Liste ausliefern')
 
+# Tagesliste „WhatsApp heute“
+HEUTE = open(os.path.join(D, 'heute.js')).read()
+w = webhook('WhatsApp heute', 'fp-heute', 'GET', 0, 800)
+chk = node('Zugang prüfen (heute)', 'n8n-nodes-base.if', 2.2, {"conditions": {"options": {"caseSensitive": True, "leftValue": "", "typeValidation": "strict", "version": 2}, "conditions": [{"id": "k2", "leftValue": "={{ $json.query.k }}", "rightValue": "__KEY__", "operator": {"type": "string", "operation": "equals"}}], "combinator": "and"}, "options": {}}, 240, 800)
+g = node('WA alle', 'n8n-nodes-base.dataTable', 1.1, {"operation": "get", "dataTableId": dt('__WA__'), "returnAll": True}, 480, 760, alwaysOutputData=True)
+c = code('Tagesliste bauen', HEUTE, 720, 760, executeOnce=True)
+r = respond('Tagesliste ausliefern', 960, 760, respondWith='text', responseBody='={{ $json.html }}', options=HTML_HDR)
+no = respond('Kein Zugang (heute)', 480, 900, respondWith='text', responseBody='Kein Zugang', options={"responseCode": 403})
+nodes += [w, chk, g, c, r, no]
+link('WhatsApp heute', 'Zugang prüfen (heute)'); link('Zugang prüfen (heute)', 'WA alle', 0); link('Zugang prüfen (heute)', 'Kein Zugang (heute)', 1)
+link('WA alle', 'Tagesliste bauen'); link('Tagesliste bauen', 'Tagesliste ausliefern')
+
 wf = {"name": "Outreach | WhatsApp-Tracking & Heiße Leads", "nodes": nodes, "connections": conn, "settings": {"executionOrder": "v1", "saveDataSuccessExecution": "none"}}
 json.dump(wf, open(os.path.join(D, 'whatsapp.json'), 'w'), ensure_ascii=False, indent=1)
 print('ok', len(nodes))
