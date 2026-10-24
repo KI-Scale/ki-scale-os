@@ -2,25 +2,26 @@
 
 Für alle vier gilt:
 - **Variable {{1}}** im Text = Vorname (Beispielwert: `Sarah`)
-- **Knopf:** „Besuchen Sie die Website“ → Text `Alle Infos ansehen` → URL-Typ **dynamisch** → `https://n8n.ki-scale.com/webhook/fp-w?t={{1}}` (Beispielwert: `5817bb538df1`)
+- **Knopf:** „Website besuchen“ → Text `Alle Infos ansehen` → URL **dynamisch** → `https://n8n.ki-scale.com/webhook/fp-w?t={{1}}` (Beispielwert: `5817bb538df1`)
 - **Fußzeile:** `Keine Nachrichten mehr? Antworte mit STOP.`
+- Der Versand stoppt automatisch, sobald 20 Plätze über WhatsApp verkauft sind.
 
-## fp_geld
+Text (Absatz 2 je Vorlage unterschiedlich):
+
 Hey {{1}}, hier ist Adrian von KI-Scale 👋
 
-Damals war ein großes Coaching finanziell nicht drin – genau deshalb schreibe ich dir.
+Ich weiß, dass du Lust hast, dir online etwas aufzubauen – wir hatten ja schon mal Kontakt. [ABSATZ]
 
-Normalerweise kostet ein Coaching bei mir 5.000 bis 15.000 €. Ich habe jetzt etwas gebaut, das in Zukunft 2.400 € kosten wird – und weil wir schon mal Kontakt hatten, möchte ich es dir vorher anbieten: für 197 €, auch bequem in Raten mit PayPal oder Klarna.
+Ehrlich gesagt ist da draußen gerade so viel Abzocke unterwegs: Coachings für 5.000, 10.000 oder 15.000 €, und am Ende stehst du mit einem Haufen Videos da und weißt nicht, wo du anfangen sollst.
 
-Ich zeige dir, wie du mit anonymen Instagram-Themenseiten (Faceless Pages) und KI dein Nebeneinkommen automatisiert aufbaust und über Kooperationen mit Firmen Geld verdienst. Ohne dein Gesicht zu zeigen, ohne das nächste 5.000-€-Coaching und ohne selbst etwas verkaufen zu müssen.
+Deshalb habe ich etwas gebaut, das dir wirklich weiterhilft: Ich zeige dir, wie du mit anonymen Instagram-Themenseiten und KI dein Nebeneinkommen aufbaust und über Kooperationen mit Firmen Geld verdienst. Ohne dein Gesicht zu zeigen, ohne selbst etwas verkaufen zu müssen und ohne Tausende Euro bei anderen zu lassen.
+
+Später kostet das 2.400 €. Weil wir schon mal Kontakt hatten, bekommst du es jetzt für 197 €, auch in Raten mit PayPal oder Klarna. Zu diesem Preis gebe ich es aber nur an 20 Leute raus.
 
 Fragen? Schreib mir einfach hier 🙂
 
-## fp_zeit
-(wie oben, zweiter Absatz:) Damals war neben allem anderen kaum Zeit – das hier geht mit ein paar Minuten am Tag am Handy.
-
-## fp_termin
-(wie oben, zweiter Absatz:) Unser Termin damals hat nicht geklappt – kein Ding!
-
-## fp_standard
-(wie oben, zweiter Absatz:) Du hattest vor einiger Zeit mit meinem Team gesprochen, weil du dir online etwas aufbauen wolltest.
+[ABSATZ] je Vorlage:
+- fp_geld: Damals war ein großes Coaching finanziell nicht drin, und das verstehe ich total.
+- fp_zeit: Damals war neben allem anderen kaum Zeit, und das verstehe ich total.
+- fp_termin: Unser Termin damals hat nicht geklappt – kein Ding, das passiert.
+- fp_standard: Ich weiß noch, dass du dir unbedingt etwas Eigenes aufbauen wolltest.

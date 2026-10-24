@@ -13,8 +13,11 @@ const MODUS = 'aus';          // 'aus' | 'live'
 const PRO_TAG = 100;          // Nachrichten pro Tag
 const VON = 9, BIS = 20;      // nur zwischen 9 und 20 Uhr (deutsche Zeit)
 const PHONE_ID = '__PHONE_ID__';
+const PLAETZE = 20;           // nur 20 Plätze zu 197 € – danach stoppt der Versand automatisch
 // =========================
 if (MODUS === 'aus' || PHONE_ID.startsWith('__')) return [];
+const verkauft = Number(($('Plätze prüfen').first().json || {}).anzahl) || 0;
+if (verkauft >= PLAETZE) return [];
 const now = new Date();
 const h = Number(now.toLocaleString('en-GB', { timeZone: 'Europe/Berlin', hour: '2-digit', hour12: false }));
 if (h < VON || h >= BIS) return [];
@@ -51,6 +54,7 @@ return [{ json: { key: 'wa|sent', mail: 'wa', typ: 'sent', anzahl: (S['wa|sent']
 """
 nodes = [
     node('Stündlich', 'n8n-nodes-base.scheduleTrigger', 1.2, {"rule": {"interval": [{"field": "hours", "hoursInterval": 1}]}}, 0, 300),
+    node('Plätze prüfen', 'n8n-nodes-base.dataTable', 1.1, {"operation": "get", "dataTableId": dt('__STATS__'), "filters": {"conditions": [{"keyName": "key", "keyValue": "wa|buy"}]}, "limit": 1}, 110, 300, alwaysOutputData=True),
     code('Einstellungen', EINST, 220, 300),
     node('Nächste Leads', 'n8n-nodes-base.dataTable', 1.1, {"operation": "get", "dataTableId": dt('__WA__'), "matchType": "allConditions",
         "filters": {"conditions": [{"keyName": "status", "keyValue": "aktiv"}, {"keyName": "gesendet", "keyValue": "-"}, {"keyName": "gekauft", "keyValue": "-"}]},
