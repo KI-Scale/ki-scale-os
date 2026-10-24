@@ -1,0 +1,394 @@
+{
+ "name": "Outreach | WhatsApp-Versand (Meta)",
+ "nodes": [
+  {
+   "id": "93294bf5-cf78-577b-8a6d-0245d7c90b2d",
+   "name": "Stündlich",
+   "type": "n8n-nodes-base.scheduleTrigger",
+   "typeVersion": 1.2,
+   "position": [
+    0,
+    300
+   ],
+   "parameters": {
+    "rule": {
+     "interval": [
+      {
+       "field": "hours",
+       "hoursInterval": 1
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "4efcbfe6-f5be-541b-98e3-2ff06fd708e6",
+   "name": "Einstellungen",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    220,
+    300
+   ],
+   "parameters": {
+    "jsCode": "\n// ===== Einstellungen =====\nconst MODUS = 'aus';          // 'aus' | 'live'\nconst PRO_TAG = 100;          // Nachrichten pro Tag\nconst VON = 9, BIS = 20;      // nur zwischen 9 und 20 Uhr (deutsche Zeit)\nconst PHONE_ID = '__PHONE_ID__';\n// =========================\nif (MODUS === 'aus' || PHONE_ID.startsWith('__')) return [];\nconst now = new Date();\nconst h = Number(now.toLocaleString('en-GB', { timeZone: 'Europe/Berlin', hour: '2-digit', hour12: false }));\nif (h < VON || h >= BIS) return [];\nconst tag = now.toLocaleDateString('sv-SE', { timeZone: 'Europe/Berlin' });\nconst sd = $getWorkflowStaticData('global'); if (sd.tag !== tag) { sd.tag = tag; sd.heute = 0; }\nconst rest = Math.max(0, PRO_TAG - (sd.heute || 0)); if (!rest) return [];\nconst laeufe = Math.max(1, BIS - h);\nreturn [{ json: { limit: Math.max(1, Math.ceil(rest / laeufe)), phoneId: PHONE_ID } }];\n"
+   }
+  },
+  {
+   "id": "2e8e6f05-c199-50bd-b2dc-9ee55853b8fc",
+   "name": "Nächste Leads",
+   "type": "n8n-nodes-base.dataTable",
+   "typeVersion": 1.1,
+   "position": [
+    440,
+    300
+   ],
+   "parameters": {
+    "operation": "get",
+    "dataTableId": {
+     "__rl": true,
+     "value": "__WA__",
+     "mode": "id"
+    },
+    "matchType": "allConditions",
+    "filters": {
+     "conditions": [
+      {
+       "keyName": "status",
+       "keyValue": "aktiv"
+      },
+      {
+       "keyName": "gesendet",
+       "keyValue": "-"
+      },
+      {
+       "keyName": "gekauft",
+       "keyValue": "-"
+      }
+     ]
+    },
+    "limit": "={{ $json.limit }}"
+   }
+  },
+  {
+   "id": "4cdccc45-eb3e-547a-b5d0-149aee228c16",
+   "name": "Nachrichten bauen",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    660,
+    300
+   ],
+   "parameters": {
+    "jsCode": "\nconst E = $('Einstellungen').first().json;\nconst T = { geld: 'fp_geld', zeit: 'fp_zeit', noshow: 'fp_termin', standard: 'fp_standard' };\nreturn $input.all().map(i => i.json).filter(L => L && L.token && L.telefon).map(L => {\n  const name = (L.vorname && L.vorname !== '-') ? L.vorname.split(' ')[0] : 'du';\n  return { json: { token: L.token, url: 'https://graph.facebook.com/v21.0/' + E.phoneId + '/messages', body: {\n    messaging_product: 'whatsapp', to: String(L.telefon).replace(/\\D/g, ''), type: 'template',\n    template: { name: T[L.gruppe] || 'fp_standard', language: { code: 'de' }, components: [\n      { type: 'body', parameters: [{ type: 'text', text: name }] },\n      { type: 'button', sub_type: 'url', index: '0', parameters: [{ type: 'text', text: L.token }] }] } } } };\n});\n"
+   }
+  },
+  {
+   "id": "19c53c56-31b1-5527-a456-1091706409f5",
+   "name": "An WhatsApp senden",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    880,
+    300
+   ],
+   "parameters": {
+    "method": "POST",
+    "url": "={{ $json.url }}",
+    "authentication": "genericCredentialType",
+    "genericAuthType": "httpHeaderAuth",
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "={{ JSON.stringify($json.body) }}",
+    "options": {
+     "batching": {
+      "batch": {
+       "batchSize": 1,
+       "batchInterval": 1500
+      }
+     }
+    }
+   },
+   "onError": "continueRegularOutput"
+  },
+  {
+   "id": "1e45de28-2298-50f4-aaf3-c2ab01e08571",
+   "name": "Ergebnis",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    1100,
+    300
+   ],
+   "parameters": {
+    "jsCode": "\nconst sent = $('Nachrichten bauen').all(); const out = [];\n$input.all().forEach((r, i) => { const m = sent[i]?.json; if (!m) return; const ok = !!(r.json && r.json.messages);\n  out.push({ json: { token: m.token, gesendet: ok ? new Date().toISOString() : 'fehler', ok, fehler: ok ? '' : JSON.stringify(r.json?.error || r.json).slice(0, 200) } }); });\nconst sd = $getWorkflowStaticData('global'); sd.heute = (sd.heute || 0) + out.filter(o => o.json.ok).length;\nsd.letzterLauf = { zeit: new Date().toISOString(), ok: out.filter(o => o.json.ok).length, fehler: out.filter(o => !o.json.ok).length };\nreturn out;\n"
+   }
+  },
+  {
+   "id": "1f47a6d4-9702-5e92-adb3-62c67b3089b6",
+   "name": "Als gesendet markieren",
+   "type": "n8n-nodes-base.dataTable",
+   "typeVersion": 1.1,
+   "position": [
+    1320,
+    300
+   ],
+   "parameters": {
+    "operation": "update",
+    "dataTableId": {
+     "__rl": true,
+     "value": "__WA__",
+     "mode": "id"
+    },
+    "filters": {
+     "conditions": [
+      {
+       "keyName": "token",
+       "keyValue": "={{ $json.token }}"
+      }
+     ]
+    },
+    "columns": {
+     "mappingMode": "defineBelow",
+     "value": {
+      "gesendet": "={{ $json.gesendet }}"
+     },
+     "matchingColumns": [],
+     "schema": [
+      {
+       "id": "gesendet",
+       "displayName": "gesendet",
+       "required": false,
+       "defaultMatch": false,
+       "display": true,
+       "type": "string",
+       "canBeUsedToMatch": true
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "c5498921-1784-55dc-9147-9f205785169c",
+   "name": "Zähler holen",
+   "type": "n8n-nodes-base.dataTable",
+   "typeVersion": 1.1,
+   "position": [
+    1540,
+    300
+   ],
+   "parameters": {
+    "operation": "get",
+    "dataTableId": {
+     "__rl": true,
+     "value": "__STATS__",
+     "mode": "id"
+    },
+    "filters": {
+     "conditions": [
+      {
+       "keyName": "key",
+       "keyValue": "wa|sent"
+      }
+     ]
+    },
+    "limit": 1
+   },
+   "alwaysOutputData": true,
+   "executeOnce": true
+  },
+  {
+   "id": "c293fb15-06d5-5320-8aaa-5bef152ec406",
+   "name": "Zählen",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    1760,
+    300
+   ],
+   "parameters": {
+    "jsCode": "\nconst S = {}; for (const r of $input.all()) if (r.json && r.json.key) S[r.json.key] = Number(r.json.anzahl) || 0;\nconst n = $('Ergebnis').all().filter(r => r.json.ok).length; if (!n) return [];\nreturn [{ json: { key: 'wa|sent', mail: 'wa', typ: 'sent', anzahl: (S['wa|sent'] || 0) + n } }];\n"
+   },
+   "executeOnce": true
+  },
+  {
+   "id": "9fddca43-8f2a-5d4a-9336-1ac2a5e5741f",
+   "name": "Zähler speichern",
+   "type": "n8n-nodes-base.dataTable",
+   "typeVersion": 1.1,
+   "position": [
+    1980,
+    300
+   ],
+   "parameters": {
+    "operation": "upsert",
+    "dataTableId": {
+     "__rl": true,
+     "value": "__STATS__",
+     "mode": "id"
+    },
+    "filters": {
+     "conditions": [
+      {
+       "keyName": "key",
+       "keyValue": "={{ $json.key }}"
+      }
+     ]
+    },
+    "columns": {
+     "mappingMode": "defineBelow",
+     "value": {
+      "key": "={{ $json.key }}",
+      "mail": "={{ $json.mail }}",
+      "typ": "={{ $json.typ }}",
+      "anzahl": "={{ $json.anzahl }}"
+     },
+     "matchingColumns": [],
+     "schema": [
+      {
+       "id": "key",
+       "displayName": "key",
+       "required": false,
+       "defaultMatch": false,
+       "display": true,
+       "type": "string",
+       "canBeUsedToMatch": true
+      },
+      {
+       "id": "mail",
+       "displayName": "mail",
+       "required": false,
+       "defaultMatch": false,
+       "display": true,
+       "type": "string",
+       "canBeUsedToMatch": true
+      },
+      {
+       "id": "typ",
+       "displayName": "typ",
+       "required": false,
+       "defaultMatch": false,
+       "display": true,
+       "type": "string",
+       "canBeUsedToMatch": true
+      },
+      {
+       "id": "anzahl",
+       "displayName": "anzahl",
+       "required": false,
+       "defaultMatch": false,
+       "display": true,
+       "type": "number",
+       "canBeUsedToMatch": true
+      }
+     ]
+    }
+   }
+  }
+ ],
+ "connections": {
+  "Stündlich": {
+   "main": [
+    [
+     {
+      "node": "Einstellungen",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Einstellungen": {
+   "main": [
+    [
+     {
+      "node": "Nächste Leads",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Nächste Leads": {
+   "main": [
+    [
+     {
+      "node": "Nachrichten bauen",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Nachrichten bauen": {
+   "main": [
+    [
+     {
+      "node": "An WhatsApp senden",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "An WhatsApp senden": {
+   "main": [
+    [
+     {
+      "node": "Ergebnis",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Ergebnis": {
+   "main": [
+    [
+     {
+      "node": "Als gesendet markieren",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Als gesendet markieren": {
+   "main": [
+    [
+     {
+      "node": "Zähler holen",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Zähler holen": {
+   "main": [
+    [
+     {
+      "node": "Zählen",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Zählen": {
+   "main": [
+    [
+     {
+      "node": "Zähler speichern",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  }
+ },
+ "settings": {
+  "executionOrder": "v1",
+  "saveDataSuccessExecution": "all"
+ }
+}

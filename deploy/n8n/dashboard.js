@@ -66,6 +66,8 @@ ${MAILS.map(m => `<tr><td><b>${esc(m.name)}</b></td><td><a class="tm" href="${CD
 <div class="h"><div class="note">Spam-Beschwerden${pill(T.sent ? T.complaint / T.sent * 100 : 0, .08, .3, T.sent)}</div><div class="v">${fmt(T.complaint)} <small class="note">${pct(T.complaint, T.sent)}</small></div></div>
 <div class="h"><div class="note">Abmeldungen${pill(T.sent ? T.unsub / T.sent * 100 : 0, 1, 2, T.sent)}</div><div class="v">${fmt(T.unsub)} <small class="note">${pct(T.unsub, T.sent)}</small></div></div>
 </div></div>
-<p class="note">WhatsApp-Bereich folgt, sobald der WhatsApp-Versand eingerichtet ist.</p>
+<div class="card"><div class="head"><h2>Überblick WhatsApp</h2><span class="note">Warme Leads aus Close · Klick = Link in der Nachricht geöffnet</span></div><div class="kpis">
+${kpi('Gesendet', fmt(g('wa', 'sent')), 'Nachrichten')}${kpi('Geklickt', fmt(g('wa', 'click')), pct(g('wa', 'click'), g('wa', 'sent')) + ' der Gesendeten')}${kpi('Käufe', fmt(g('wa', 'buy')), pct(g('wa', 'buy'), g('wa', 'sent')) + ' der Gesendeten')}${kpi('Umsatz', eur(g('wa', 'buy') * PRICE), 'à 197 €')}
+</div><p class="note">Wer geklickt, aber nicht gekauft hat, steht in der Liste „Heiße Leads“ zum Nachfassen oder Anrufen.</p></div>
 </div></body></html>`;
 return [{ json: { html } }];
