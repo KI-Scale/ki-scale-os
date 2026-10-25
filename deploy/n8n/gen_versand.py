@@ -37,6 +37,7 @@ BUILD = r"""
 const MAILS = __MAILS__;
 const INLINE = __INLINE__;
 const BASE = 'https://n8n.ki-scale.com/webhook/';
+const SITE = 'https://faceless.adrian-lewu.de/';  // Links in der Mail laufen über die eigene Domain
 const E = $('Einstellungen').first().json;
 const H = 3600e3 * E.faktor, now = Date.now();
 const iso = t => t && t !== '-' && t !== 'fehler' ? Date.parse(t) : 0;
@@ -73,8 +74,8 @@ for (const { L, phase, end } of jobs) {
   const q = 't=' + L.token + '&m=' + id + '&e=' + end;
   const frist = fristText(end);
   const rep = s => s.split('{{VORNAME_SP}}').join(name ? ' ' + name : '').split('{{VORNAME}}').join(name).split('{{FRIST}}').join(frist)
-    .split('{{KLICK}}').join(BASE + 'fp-c?' + q + '&z=lp').split('{{KLICK_CAL}}').join(BASE + 'fp-c?' + q + '&z=cal')
-    .split('{{ABMELDEN}}').join(BASE + 'fp-u?' + q).split('{{PIXEL}}').join(BASE + 'fp-o?' + q);
+    .split('{{KLICK}}').join(SITE + 'go/' + L.token + '/' + id + '/' + end).split('{{KLICK_CAL}}').join(SITE + 'termin/' + L.token + '/' + id)
+    .split('{{ABMELDEN}}').join(SITE + 'abmelden/' + L.token + '/' + id).split('{{PIXEL}}').join(BASE + 'fp-o?' + q);
   let subject = T.subject;
   if (!name) subject = subject.replace(', {{VORNAME}}', '').replace('{{VORNAME}}', '');
   let html = rep(T.html);
