@@ -102,6 +102,17 @@ link('Dashboard', 'Schlüssel prüfen'); link('Schlüssel prüfen', 'Zahlen hole
 conn['Schlüssel prüfen']['main'].append([{"node": 'Kein Zugang', "type": "main", "index": 0}])
 link('Zahlen holen', 'Seite bauen'); link('Seite bauen', 'Seite ausliefern')
 
+# Kurze Pfad-Links (eigene Domain leitet per _redirects hierher, weil Cloudflare Platzhalter nur im Pfad ersetzt)
+for i, (path, ziel) in enumerate([
+    ('fp-go/:t/:m/:e', "={{ '" + BASE + "fp-c?t=' + $json.params.t + '&m=' + $json.params.m + '&e=' + $json.params.e + '&z=lp' }}"),
+    ('fp-termin/:t/:m', "={{ '" + BASE + "fp-c?t=' + $json.params.t + '&m=' + $json.params.m + '&z=cal' }}"),
+    ('fp-ab/:t/:m', "={{ '" + BASE + "fp-u?t=' + $json.params.t + '&m=' + $json.params.m }}"),
+    ('fp-start/:t', "={{ '" + BASE + "fp-w?t=' + $json.params.t }}"),
+]):
+    nm = 'Kurzlink ' + path.split('/')[0]
+    w = webhook(nm, path, 'GET', 0, 1300 + i * 160); r = respond(nm + ' → weiter', 260, 1300 + i * 160, respondWith='redirect', redirectURL=ziel, options={})
+    nodes += [w, r]; link(w['name'], r['name'])
+
 wf = {"name": "Outreach | Tracking & Live-Dashboard", "nodes": nodes, "connections": conn, "settings": {"executionOrder": "v1", "saveDataSuccessExecution": "none"}}
 json.dump(wf, open(os.path.join(D, 'tracking.json'), 'w'), ensure_ascii=False, indent=1)
 print('ok', len(nodes))

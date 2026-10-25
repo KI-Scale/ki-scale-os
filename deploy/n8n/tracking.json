@@ -552,6 +552,134 @@
      "responseCode": 403
     }
    }
+  },
+  {
+   "id": "99c61c68-2e2e-55c2-9997-93b8af5da186",
+   "name": "Kurzlink fp-go",
+   "type": "n8n-nodes-base.webhook",
+   "typeVersion": 2,
+   "position": [
+    0,
+    1300
+   ],
+   "parameters": {
+    "path": "fp-go/:t/:m/:e",
+    "httpMethod": "GET",
+    "responseMode": "responseNode",
+    "options": {}
+   },
+   "webhookId": "4bdedf8a-b3ea-5204-b0c5-3fc3562e1fb2"
+  },
+  {
+   "id": "38e6b662-41f0-5d6e-b8bc-d45dd827931a",
+   "name": "Kurzlink fp-go → weiter",
+   "type": "n8n-nodes-base.respondToWebhook",
+   "typeVersion": 1.1,
+   "position": [
+    260,
+    1300
+   ],
+   "parameters": {
+    "respondWith": "redirect",
+    "redirectURL": "={{ 'https://n8n.ki-scale.com/webhook/fp-c?t=' + $json.params.t + '&m=' + $json.params.m + '&e=' + $json.params.e + '&z=lp' }}",
+    "options": {}
+   }
+  },
+  {
+   "id": "e36cedcd-650a-5ea9-91d5-6d0f9a9114d6",
+   "name": "Kurzlink fp-termin",
+   "type": "n8n-nodes-base.webhook",
+   "typeVersion": 2,
+   "position": [
+    0,
+    1460
+   ],
+   "parameters": {
+    "path": "fp-termin/:t/:m",
+    "httpMethod": "GET",
+    "responseMode": "responseNode",
+    "options": {}
+   },
+   "webhookId": "b6ce7b1d-04f3-532c-b266-b5810fa362a9"
+  },
+  {
+   "id": "fe69435b-bd50-5ffc-a9ab-418430444526",
+   "name": "Kurzlink fp-termin → weiter",
+   "type": "n8n-nodes-base.respondToWebhook",
+   "typeVersion": 1.1,
+   "position": [
+    260,
+    1460
+   ],
+   "parameters": {
+    "respondWith": "redirect",
+    "redirectURL": "={{ 'https://n8n.ki-scale.com/webhook/fp-c?t=' + $json.params.t + '&m=' + $json.params.m + '&z=cal' }}",
+    "options": {}
+   }
+  },
+  {
+   "id": "7f8031d9-b100-5e08-bffd-db2ecee87606",
+   "name": "Kurzlink fp-ab",
+   "type": "n8n-nodes-base.webhook",
+   "typeVersion": 2,
+   "position": [
+    0,
+    1620
+   ],
+   "parameters": {
+    "path": "fp-ab/:t/:m",
+    "httpMethod": "GET",
+    "responseMode": "responseNode",
+    "options": {}
+   },
+   "webhookId": "18c4f827-4cfc-5934-9142-85c97d178856"
+  },
+  {
+   "id": "72dd2be6-bb7f-5261-95ce-4c3af67669d7",
+   "name": "Kurzlink fp-ab → weiter",
+   "type": "n8n-nodes-base.respondToWebhook",
+   "typeVersion": 1.1,
+   "position": [
+    260,
+    1620
+   ],
+   "parameters": {
+    "respondWith": "redirect",
+    "redirectURL": "={{ 'https://n8n.ki-scale.com/webhook/fp-u?t=' + $json.params.t + '&m=' + $json.params.m }}",
+    "options": {}
+   }
+  },
+  {
+   "id": "a771ca25-8a0d-549e-a059-4900bbb13e46",
+   "name": "Kurzlink fp-start",
+   "type": "n8n-nodes-base.webhook",
+   "typeVersion": 2,
+   "position": [
+    0,
+    1780
+   ],
+   "parameters": {
+    "path": "fp-start/:t",
+    "httpMethod": "GET",
+    "responseMode": "responseNode",
+    "options": {}
+   },
+   "webhookId": "7cac3adc-8aa1-566d-8340-92e7983272b9"
+  },
+  {
+   "id": "a189e0b2-57a4-559d-916b-19276f42444e",
+   "name": "Kurzlink fp-start → weiter",
+   "type": "n8n-nodes-base.respondToWebhook",
+   "typeVersion": 1.1,
+   "position": [
+    260,
+    1780
+   ],
+   "parameters": {
+    "respondWith": "redirect",
+    "redirectURL": "={{ 'https://n8n.ki-scale.com/webhook/fp-w?t=' + $json.params.t }}",
+    "options": {}
+   }
   }
  ],
  "connections": {
@@ -776,6 +904,50 @@
     [
      {
       "node": "Seite ausliefern",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Kurzlink fp-go": {
+   "main": [
+    [
+     {
+      "node": "Kurzlink fp-go → weiter",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Kurzlink fp-termin": {
+   "main": [
+    [
+     {
+      "node": "Kurzlink fp-termin → weiter",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Kurzlink fp-ab": {
+   "main": [
+    [
+     {
+      "node": "Kurzlink fp-ab → weiter",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Kurzlink fp-start": {
+   "main": [
+    [
+     {
+      "node": "Kurzlink fp-start → weiter",
       "type": "main",
       "index": 0
      }
