@@ -1,0 +1,75 @@
+WHATSAPP-VORLAGEN FÜR META – zum Kopieren
+
+Für alle 4 gleich:
+- Kategorie: Marketing · Typ: Standard (Default) · Sprache: Deutsch
+- Beispielwert für {{1}} im Text: Sarah
+- Knopf: „Call to Action“ → „Website besuchen“ → Text: Alle Infos ansehen
+- URL-Typ: Dynamisch → https://faceless.adrian-lewu.de/start/{{1}}
+- Beispiel-URL: https://faceless.adrian-lewu.de/start/5817bb538df1
+- Fußzeile (optional): Keine Nachrichten mehr? Antworte mit STOP.
+
+==================================================
+VORLAGE 1 – Name: fp_geld
+==================================================
+Hey {{1}}, Adrian hier 👋
+
+Du hattest dich vor einer Weile bei uns eingetragen und mit jemandem aus meinem Team telefoniert. Ich musste gerade an dich denken, weil du ja auch etwas Eigenes aufbauen wolltest.
+
+Damals hat es bei dir finanziell nicht gepasst. Genau deshalb soll Geld diesmal nicht der Grund sein, warum du nicht startest.
+
+Ich war selbst lange angestellt und kenne das Gefühl: Man sucht einen Weg und landet bei Coachings für 5.000 oder 15.000 €.
+
+Deshalb habe ich etwas gebaut, das ich mir damals selbst gewünscht hätte: Wie du mit KI eine anonyme Instagram-Seite aufbaust, ohne dein Gesicht zu zeigen, und über Kooperationen mit Firmen dein Nebeneinkommen startest.
+
+In 72 Stunden verkaufe ich das für 2.400 €. Weil wir schon gesprochen haben, bekommst du es jetzt einmalig für 197 € – kein Abo, auf Wunsch in Raten über PayPal.
+
+Fragen? Schreib mir einfach hier, ich antworte persönlich 🙂
+
+==================================================
+VORLAGE 2 – Name: fp_zeit
+==================================================
+Hey {{1}}, Adrian hier 👋
+
+Du hattest dich vor einer Weile bei uns eingetragen und mit jemandem aus meinem Team telefoniert. Ich musste gerade an dich denken, weil du ja auch etwas Eigenes aufbauen wolltest.
+
+Damals war bei dir einfach zu viel los. Deshalb geht das hier mit ein paar Minuten am Tag, am Handy.
+
+Ich war selbst lange angestellt und kenne das Gefühl: Man sucht einen Weg und landet bei Coachings für 5.000 oder 15.000 €.
+
+Deshalb habe ich etwas gebaut, das ich mir damals selbst gewünscht hätte: Wie du mit KI eine anonyme Instagram-Seite aufbaust, ohne dein Gesicht zu zeigen, und über Kooperationen mit Firmen dein Nebeneinkommen startest.
+
+In 72 Stunden verkaufe ich das für 2.400 €. Weil wir schon gesprochen haben, bekommst du es jetzt einmalig für 197 € – kein Abo, auf Wunsch in Raten über PayPal.
+
+Fragen? Schreib mir einfach hier, ich antworte persönlich 🙂
+
+==================================================
+VORLAGE 3 – Name: fp_termin
+==================================================
+Hey {{1}}, Adrian hier 👋
+
+Du hattest dich vor einer Weile bei uns eingetragen und mit jemandem aus meinem Team telefoniert. Ich musste gerade an dich denken, weil du ja auch etwas Eigenes aufbauen wolltest.
+
+Euer Termin hat damals nicht geklappt – kein Ding, manchmal kommt das Leben dazwischen.
+
+Ich war selbst lange angestellt und kenne das Gefühl: Man sucht einen Weg und landet bei Coachings für 5.000 oder 15.000 €.
+
+Deshalb habe ich etwas gebaut, das ich mir damals selbst gewünscht hätte: Wie du mit KI eine anonyme Instagram-Seite aufbaust, ohne dein Gesicht zu zeigen, und über Kooperationen mit Firmen dein Nebeneinkommen startest.
+
+In 72 Stunden verkaufe ich das für 2.400 €. Weil wir schon gesprochen haben, bekommst du es jetzt einmalig für 197 € – kein Abo, auf Wunsch in Raten über PayPal.
+
+Fragen? Schreib mir einfach hier, ich antworte persönlich 🙂
+
+==================================================
+VORLAGE 4 – Name: fp_standard
+==================================================
+Hey {{1}}, Adrian hier 👋
+
+Du hattest dich vor einer Weile bei uns eingetragen und mit jemandem aus meinem Team telefoniert. Ich musste gerade an dich denken, weil du ja auch etwas Eigenes aufbauen wolltest.
+
+Ich war selbst lange angestellt und kenne das Gefühl: Man sucht einen Weg und landet bei Coachings für 5.000 oder 15.000 €.
+
+Deshalb habe ich etwas gebaut, das ich mir damals selbst gewünscht hätte: Wie du mit KI eine anonyme Instagram-Seite aufbaust, ohne dein Gesicht zu zeigen, und über Kooperationen mit Firmen dein Nebeneinkommen startest.
+
+In 72 Stunden verkaufe ich das für 2.400 €. Weil wir schon gesprochen haben, bekommst du es jetzt einmalig für 197 € – kein Abo, auf Wunsch in Raten über PayPal.
+
+Fragen? Schreib mir einfach hier, ich antworte persönlich 🙂
