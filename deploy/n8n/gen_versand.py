@@ -17,6 +17,7 @@ const PRO_TAG = 1000;     // neue Leads pro Tag
 const VON = 8, BIS = 21;  // erste Mails nur zwischen 8 und 21 Uhr (deutsche Zeit)
 const FOLGE_VON = 7, FOLGE_BIS = 22; // Folge-Mails zwischen 7 und 22 Uhr
 const PRO_LAUF = 150;     // höchstens so viele neue Leads pro 10-Minuten-Lauf
+const MAX_MAILS_TAG = __MAXMAILS__; // Obergrenze aller Mails pro Tag (Erst- + Folge-Mails), z. B. Brevo kostenlos: 290
 // =================================================
 if (MODUS === 'aus') return [];
 const test = MODUS === 'test';
@@ -24,13 +25,15 @@ const now = new Date();
 const h = Number(now.toLocaleString('en-GB', { timeZone: 'Europe/Berlin', hour: '2-digit', hour12: false }));
 const tag = now.toLocaleDateString('sv-SE', { timeZone: 'Europe/Berlin' });
 const sd = $getWorkflowStaticData('global');
-if (sd.tag !== tag) { sd.tag = tag; sd.heute = 0; }
+if (sd.tag !== tag) { sd.tag = tag; sd.heute = 0; sd.mailsHeute = 0; }
+const mailRest = Math.max(0, MAX_MAILS_TAG - (sd.mailsHeute || 0));
+if (!mailRest) return [];
 const offen = test || (h >= VON && h < BIS);
 const folgeOffen = test || (h >= FOLGE_VON && h < FOLGE_BIS);
 const restLaeufe = Math.max(1, (BIS - h) * 6 - Math.floor(now.getMinutes() / 10));
 let neu = offen ? Math.min(PRO_LAUF, Math.ceil(Math.max(0, PRO_TAG - (sd.heute || 0)) / (test ? 1 : restLaeufe))) : 0;
 const status = test ? 'test' : 'aktiv';
-return [{ json: { status, neu, neuStatus: neu > 0 ? status : '__keiner__', neuLimit: Math.max(1, neu), faktor: test ? 1 / 60 : 1, folgeOffen, heute: sd.heute || 0, tag } }];
+return [{ json: { status, neu, neuStatus: neu > 0 ? status : '__keiner__', neuLimit: Math.max(1, neu), faktor: test ? 1 / 60 : 1, folgeOffen, heute: sd.heute || 0, tag, mailRest } }];
 """
 
 BUILD = r"""
@@ -66,8 +69,10 @@ if (E.neu > 0) for (const it of $('Neue Leads').all()) {
   const L = it.json; if (!L || !L.token || L.m1 !== '-') continue;
   jobs.push({ L, phase: 'm1', end: now + 24 * H });
 }
+const PROVIDER = '__PROVIDER__';  // 'ses' | 'brevo'
+const IMG = 'https://cdn.jsdelivr.net/gh/KI-Scale/ki-scale-os@main/public/mail/';
 const out = [];
-for (const { L, phase, end } of jobs) {
+for (const { L, phase, end } of jobs.slice(0, E.mailRest)) {
   const id = phase === 'm1' ? '1' + (['A', 'B', 'C'].includes(L.variante) ? L.variante : 'A') : phase.slice(1);
   const T = MAILS[id]; if (!T) continue;
   const name = String(L.vorname || '').trim().split(' ')[0].replace(/^-$/, '');
@@ -81,6 +86,15 @@ for (const { L, phase, end } of jobs) {
   let html = rep(T.html);
   if (!name) html = html.split('Hey ,').join('Hey,');
   const text = html.replace(/<style[\s\S]*?<\/style>/g, '').replace(/<a [^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g, '$2 ($1)').replace(/<br\s*\/?>/g, '\n').replace(/<\/(p|div|tr|h\d)>/g, '\n').replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/\n\s*\n+/g, '\n\n').trim();
+  const unsub = BASE + 'fp-u?' + q;
+  if (PROVIDER === 'brevo') {
+    const bhtml = html.split('cid:logo').join(IMG + 'logo.png').split('cid:adrian').join(IMG + 'adrian.jpg');
+    out.push({ json: { to: L.email, token: L.token, field: phase, mailId: id,
+      body: { sender: { name: 'Adrian Lewu', email: 'adrian@mail.adrian-lewu.de' }, replyTo: { email: 'team@ki-scale.com', name: 'Adrian Lewu' },
+        to: [{ email: L.email }], subject: rep(subject), htmlContent: bhtml, textContent: text, tags: ['fp197', id],
+        headers: { 'List-Unsubscribe': '<' + unsub + '>', 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' } } } });
+    continue;
+  }
   out.push({ json: { to: L.email, token: L.token, field: phase, mailId: id,
     body: { FromEmailAddress: 'Adrian Lewu <adrian@mail.adrian-lewu.de>', ReplyToAddresses: ['team@ki-scale.com'], Destination: { ToAddresses: [L.email] },
       Content: { Simple: { Subject: { Data: rep(subject), Charset: 'UTF-8' }, Body: { Html: { Data: html, Charset: 'UTF-8' }, Text: { Data: text, Charset: 'UTF-8' } },
@@ -94,9 +108,10 @@ RESULT = r"""
 const sent = $('Mails bauen').all();
 const res = $input.all();
 const ok = [], fail = [];
-res.forEach((r, i) => { const m = sent[i]?.json; if (!m) return; (r.json && r.json.MessageId ? ok : fail).push({ json: { token: m.token, field: m.field, mailId: m.mailId, fehler: r.json && r.json.error ? JSON.stringify(r.json.error).slice(0, 200) : '' } }); });
+res.forEach((r, i) => { const m = sent[i]?.json; if (!m) return; (r.json && (r.json.MessageId || r.json.messageId) ? ok : fail).push({ json: { token: m.token, field: m.field, mailId: m.mailId, fehler: r.json && r.json.error ? JSON.stringify(r.json.error).slice(0, 200) : '' } }); });
 const sd = $getWorkflowStaticData('global');
 sd.heute = (sd.heute || 0) + ok.filter(o => o.json.field === 'm1').length;
+sd.mailsHeute = (sd.mailsHeute || 0) + ok.length;
 sd.letzterLauf = { zeit: new Date().toISOString(), ok: ok.length, fehler: fail.length, letzterFehler: fail[0] ? fail[0].json.fehler : '' };
 return ok.concat(fail.map(f => ({ json: { ...f.json, failed: true } })));
 """
@@ -112,20 +127,29 @@ def cond(k, v, c=None):
     if c: d["condition"] = c
     return d
 
-nodes = [
+def build(provider):
+  einst = EINSTELLUNGEN.replace('__MAXMAILS__', '290' if provider == 'brevo' else '100000')
+  if provider == 'brevo':
+    send = node('An Brevo senden', 'n8n-nodes-base.httpRequest', 4.2, {"method": "POST", "url": "https://api.brevo.com/v3/smtp/email",
+        "authentication": "genericCredentialType", "genericAuthType": "httpHeaderAuth", "sendBody": True, "specifyBody": "json", "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {"batching": {"batch": {"batchSize": 5, "batchInterval": 1100}}}}, 1100, 300,
+        credentials={"httpHeaderAuth": {"id": "__BREVO__", "name": "Brevo"}}, onError="continueRegularOutput")
+  else:
+    send = node('An Amazon SES senden', 'n8n-nodes-base.httpRequest', 4.2, {"method": "POST", "url": "https://email.eu-central-1.amazonaws.com/v2/email/outbound-emails",
+        "authentication": "predefinedCredentialType", "nodeCredentialType": "aws", "sendBody": True, "specifyBody": "json", "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {"batching": {"batch": {"batchSize": 10, "batchInterval": 1100}}}}, 1100, 300,
+        credentials={"aws": {"id": "__AWS__", "name": "Amazon SES"}}, onError="continueRegularOutput")
+  nodes = [
     node('Alle 10 Minuten', 'n8n-nodes-base.scheduleTrigger', 1.2, {"rule": {"interval": [{"field": "minutes", "minutesInterval": 10}]}}, 0, 300),
-    code('Einstellungen', EINSTELLUNGEN, 220, 300),
+    code('Einstellungen', einst, 220, 300),
     node('Laufende Leads', 'n8n-nodes-base.dataTable', 1.1, {"operation": "get", "dataTableId": dt('__LEADS__'), "matchType": "allConditions",
         "filters": {"conditions": [cond("status", "={{ $json.status }}"), cond("m1", "-", "neq"), cond("m4", "-"), cond("gekauft", "-")]}, "returnAll": True},
         440, 300, alwaysOutputData=True, executeOnce=True),
     node('Neue Leads', 'n8n-nodes-base.dataTable', 1.1, {"operation": "get", "dataTableId": dt('__LEADS__'), "matchType": "allConditions",
         "filters": {"conditions": [cond("status", "={{ $('Einstellungen').first().json.neuStatus }}"), cond("m1", "-")]},
         "limit": "={{ $('Einstellungen').first().json.neuLimit }}"}, 660, 300, alwaysOutputData=True, executeOnce=True),
-    code('Mails bauen', BUILD, 880, 300, executeOnce=True),
-    node('An Amazon SES senden', 'n8n-nodes-base.httpRequest', 4.2, {"method": "POST", "url": "https://email.eu-central-1.amazonaws.com/v2/email/outbound-emails",
-        "authentication": "predefinedCredentialType", "nodeCredentialType": "aws", "sendBody": True, "specifyBody": "json", "jsonBody": "={{ JSON.stringify($json.body) }}",
-        "options": {"batching": {"batch": {"batchSize": 10, "batchInterval": 1100}}}}, 1100, 300,
-        credentials={"aws": {"id": "__AWS__", "name": "Amazon SES"}}, onError="continueRegularOutput"),
+    code('Mails bauen', BUILD.replace('__PROVIDER__', provider), 880, 300, executeOnce=True),
+    send,
     code('Ergebnis', RESULT, 1320, 300),
     node('Als gesendet markieren', 'n8n-nodes-base.dataTable', 1.1, {"operation": "update", "dataTableId": dt('__LEADS__'),
         "filters": {"conditions": [cond("token", "={{ $json.token }}")]},
@@ -136,9 +160,13 @@ nodes = [
     code('Zählen', COUNT, 1980, 300, executeOnce=True),
     node('Zähler speichern', 'n8n-nodes-base.dataTable', 1.1, {"operation": "upsert", "dataTableId": dt('__STATS__'), "filters": {"conditions": [cond("key", "={{ $json.key }}")]},
         "columns": {"mappingMode": "defineBelow", "value": {"key": "={{ $json.key }}", "mail": "={{ $json.mail }}", "typ": "={{ $json.typ }}", "anzahl": "={{ $json.anzahl }}"}, "matchingColumns": [], "schema": schema(STATCOLS)}}, 2200, 300),
-]
-chain = ['Alle 10 Minuten', 'Einstellungen', 'Laufende Leads', 'Neue Leads', 'Mails bauen', 'An Amazon SES senden', 'Ergebnis', 'Als gesendet markieren', 'Zähler holen', 'Zählen', 'Zähler speichern']
-conn = {a: {"main": [[{"node": b, "type": "main", "index": 0}]]} for a, b in zip(chain, chain[1:])}
-wf = {"name": "Outreach | Versand über Amazon SES", "nodes": nodes, "connections": conn, "settings": {"executionOrder": "v1", "saveDataSuccessExecution": "all"}}
-json.dump(wf, open(os.path.join(D, 'versand.json'), 'w'), ensure_ascii=False, indent=1)
-print('ok', len(nodes))
+  ]
+  chain = [n['name'] for n in nodes]
+  conn = {a: {"main": [[{"node": b, "type": "main", "index": 0}]]} for a, b in zip(chain, chain[1:])}
+  name = "Outreach | Versand über Brevo" if provider == 'brevo' else "Outreach | Versand über Amazon SES"
+  return {"name": name, "nodes": nodes, "connections": conn, "settings": {"executionOrder": "v1", "saveDataSuccessExecution": "all"}}
+
+for prov, fn in [('ses', 'versand.json'), ('brevo', 'versand_brevo.json')]:
+  wf = build(prov)
+  json.dump(wf, open(os.path.join(D, fn), 'w'), ensure_ascii=False, indent=1)
+  print('ok', fn, len(wf['nodes']))

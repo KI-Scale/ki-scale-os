@@ -1,0 +1,485 @@
+{
+ "name": "Outreach | Versand über Brevo",
+ "nodes": [
+  {
+   "id": "93125b44-5362-525e-986b-59b9ea6d6acf",
+   "name": "Alle 10 Minuten",
+   "type": "n8n-nodes-base.scheduleTrigger",
+   "typeVersion": 1.2,
+   "position": [
+    0,
+    300
+   ],
+   "parameters": {
+    "rule": {
+     "interval": [
+      {
+       "field": "minutes",
+       "minutesInterval": 10
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "4efcbfe6-f5be-541b-98e3-2ff06fd708e6",
+   "name": "Einstellungen",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    220,
+    300
+   ],
+   "parameters": {
+    "jsCode": "\n// ===== Einstellungen (Claude passt diese an) =====\nconst MODUS = 'aus';      // 'aus' | 'test' (nur Test-Leads, Minuten statt Stunden) | 'live'\nconst PRO_TAG = 1000;     // neue Leads pro Tag\nconst VON = 8, BIS = 21;  // erste Mails nur zwischen 8 und 21 Uhr (deutsche Zeit)\nconst FOLGE_VON = 7, FOLGE_BIS = 22; // Folge-Mails zwischen 7 und 22 Uhr\nconst PRO_LAUF = 150;     // höchstens so viele neue Leads pro 10-Minuten-Lauf\nconst MAX_MAILS_TAG = 290; // Obergrenze aller Mails pro Tag (Erst- + Folge-Mails), z. B. Brevo kostenlos: 290\n// =================================================\nif (MODUS === 'aus') return [];\nconst test = MODUS === 'test';\nconst now = new Date();\nconst h = Number(now.toLocaleString('en-GB', { timeZone: 'Europe/Berlin', hour: '2-digit', hour12: false }));\nconst tag = now.toLocaleDateString('sv-SE', { timeZone: 'Europe/Berlin' });\nconst sd = $getWorkflowStaticData('global');\nif (sd.tag !== tag) { sd.tag = tag; sd.heute = 0; sd.mailsHeute = 0; }\nconst mailRest = Math.max(0, MAX_MAILS_TAG - (sd.mailsHeute || 0));\nif (!mailRest) return [];\nconst offen = test || (h >= VON && h < BIS);\nconst folgeOffen = test || (h >= FOLGE_VON && h < FOLGE_BIS);\nconst restLaeufe = Math.max(1, (BIS - h) * 6 - Math.floor(now.getMinutes() / 10));\nlet neu = offen ? Math.min(PRO_LAUF, Math.ceil(Math.max(0, PRO_TAG - (sd.heute || 0)) / (test ? 1 : restLaeufe))) : 0;\nconst status = test ? 'test' : 'aktiv';\nreturn [{ json: { status, neu, neuStatus: neu > 0 ? status : '__keiner__', neuLimit: Math.max(1, neu), faktor: test ? 1 / 60 : 1, folgeOffen, heute: sd.heute || 0, tag, mailRest } }];\n"
+   }
+  },
+  {
+   "id": "365b70d7-4112-524c-bf95-1b885779892a",
+   "name": "Laufende Leads",
+   "type": "n8n-nodes-base.dataTable",
+   "typeVersion": 1.1,
+   "position": [
+    440,
+    300
+   ],
+   "parameters": {
+    "operation": "get",
+    "dataTableId": {
+     "__rl": true,
+     "value": "__LEADS__",
+     "mode": "id"
+    },
+    "matchType": "allConditions",
+    "filters": {
+     "conditions": [
+      {
+       "keyName": "status",
+       "keyValue": "={{ $json.status }}"
+      },
+      {
+       "keyName": "m1",
+       "keyValue": "-",
+       "condition": "neq"
+      },
+      {
+       "keyName": "m4",
+       "keyValue": "-"
+      },
+      {
+       "keyName": "gekauft",
+       "keyValue": "-"
+      }
+     ]
+    },
+    "returnAll": true
+   },
+   "alwaysOutputData": true,
+   "executeOnce": true
+  },
+  {
+   "id": "d2eb76f9-2df6-5834-a463-44ea07868fa8",
+   "name": "Neue Leads",
+   "type": "n8n-nodes-base.dataTable",
+   "typeVersion": 1.1,
+   "position": [
+    660,
+    300
+   ],
+   "parameters": {
+    "operation": "get",
+    "dataTableId": {
+     "__rl": true,
+     "value": "__LEADS__",
+     "mode": "id"
+    },
+    "matchType": "allConditions",
+    "filters": {
+     "conditions": [
+      {
+       "keyName": "status",
+       "keyValue": "={{ $('Einstellungen').first().json.neuStatus }}"
+      },
+      {
+       "keyName": "m1",
+       "keyValue": "-"
+      }
+     ]
+    },
+    "limit": "={{ $('Einstellungen').first().json.neuLimit }}"
+   },
+   "alwaysOutputData": true,
+   "executeOnce": true
+  },
+  {
+   "id": "55f98dcf-0c6d-531f-81d8-7f799c3e74a7",
+   "name": "Mails bauen",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    880,
+    300
+   ],
+   "parameters": {
+    "jsCode": "\nconst MAILS = __MAILS__;\nconst INLINE = __INLINE__;\nconst BASE = 'https://n8n.ki-scale.com/webhook/';\nconst SITE = 'https://faceless.adrian-lewu.de/';  // Links in der Mail laufen über die eigene Domain\nconst E = $('Einstellungen').first().json;\nconst H = 3600e3 * E.faktor, now = Date.now();\nconst iso = t => t && t !== '-' && t !== 'fehler' ? Date.parse(t) : 0;\nconst fristText = end => {\n  const d = new Date(end), o = { timeZone: 'Europe/Berlin' };\n  return d.toLocaleDateString('de-DE', { ...o, weekday: 'long', day: 'numeric', month: 'long' }) + ' um ' + d.toLocaleTimeString('de-DE', { ...o, hour: '2-digit', minute: '2-digit' }) + ' Uhr';\n};\nconst jobs = [];\n// 1) Folge-Mails für laufende Leads\nif (E.folgeOffen) for (const it of $('Laufende Leads').all()) {\n  const L = it.json; if (!L || !L.token) continue;\n  const t1 = iso(L.m1); if (!t1) continue;\n  const end = t1 + 24 * H;\n  const last = Math.max(t1, iso(L.m2), iso(L.m2b), iso(L.m3));\n  let phase = null;\n  if (now >= end + 2 * H) phase = 'm4';\n  else if (now < end && now >= end - 3 * H) { if (L.m3 === '-') phase = 'm3'; }\n  else if (now < end - 3 * H && now - last >= 1 * H) {\n    if (L.m2 === '-' && now >= t1 + 8 * H) phase = 'm2';\n    else if (L.m2b === '-' && L.geklickt && L.geklickt !== '-' && now >= t1 + 2 * H) phase = 'm2b';\n  }\n  if (phase) jobs.push({ L, phase, end });\n}\n// 2) Erste Mail für neue Leads\nif (E.neu > 0) for (const it of $('Neue Leads').all()) {\n  const L = it.json; if (!L || !L.token || L.m1 !== '-') continue;\n  jobs.push({ L, phase: 'm1', end: now + 24 * H });\n}\nconst PROVIDER = 'brevo';  // 'ses' | 'brevo'\nconst IMG = 'https://cdn.jsdelivr.net/gh/KI-Scale/ki-scale-os@main/public/mail/';\nconst out = [];\nfor (const { L, phase, end } of jobs.slice(0, E.mailRest)) {\n  const id = phase === 'm1' ? '1' + (['A', 'B', 'C'].includes(L.variante) ? L.variante : 'A') : phase.slice(1);\n  const T = MAILS[id]; if (!T) continue;\n  const name = String(L.vorname || '').trim().split(' ')[0].replace(/^-$/, '');\n  const q = 't=' + L.token + '&m=' + id + '&e=' + end;\n  const frist = fristText(end);\n  const rep = s => s.split('{{VORNAME_SP}}').join(name ? ' ' + name : '').split('{{VORNAME}}').join(name).split('{{FRIST}}').join(frist)\n    .split('{{KLICK}}').join(SITE + 'go/' + L.token + '/' + id + '/' + end).split('{{KLICK_CAL}}').join(SITE + 'termin/' + L.token + '/' + id)\n    .split('{{ABMELDEN}}').join(SITE + 'abmelden/' + L.token + '/' + id).split('{{PIXEL}}').join(BASE + 'fp-o?' + q);\n  let subject = T.subject;\n  if (!name) subject = subject.replace(', {{VORNAME}}', '').replace('{{VORNAME}}', '');\n  let html = rep(T.html);\n  if (!name) html = html.split('Hey ,').join('Hey,');\n  const text = html.replace(/<style[\\s\\S]*?<\\/style>/g, '').replace(/<a [^>]*href=\"([^\"]+)\"[^>]*>([\\s\\S]*?)<\\/a>/g, '$2 ($1)').replace(/<br\\s*\\/?>/g, '\\n').replace(/<\\/(p|div|tr|h\\d)>/g, '\\n').replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/\\n\\s*\\n+/g, '\\n\\n').trim();\n  const unsub = BASE + 'fp-u?' + q;\n  if (PROVIDER === 'brevo') {\n    const bhtml = html.split('cid:logo').join(IMG + 'logo.png').split('cid:adrian').join(IMG + 'adrian.jpg');\n    out.push({ json: { to: L.email, token: L.token, field: phase, mailId: id,\n      body: { sender: { name: 'Adrian Lewu', email: 'adrian@mail.adrian-lewu.de' }, replyTo: { email: 'team@ki-scale.com', name: 'Adrian Lewu' },\n        to: [{ email: L.email }], subject: rep(subject), htmlContent: bhtml, textContent: text, tags: ['fp197', id],\n        headers: { 'List-Unsubscribe': '<' + unsub + '>', 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' } } } });\n    continue;\n  }\n  out.push({ json: { to: L.email, token: L.token, field: phase, mailId: id,\n    body: { FromEmailAddress: 'Adrian Lewu <adrian@mail.adrian-lewu.de>', ReplyToAddresses: ['team@ki-scale.com'], Destination: { ToAddresses: [L.email] },\n      Content: { Simple: { Subject: { Data: rep(subject), Charset: 'UTF-8' }, Body: { Html: { Data: html, Charset: 'UTF-8' }, Text: { Data: text, Charset: 'UTF-8' } },\n        Attachments: INLINE,\n        Headers: [{ Name: 'List-Unsubscribe', Value: '<' + BASE + 'fp-u?' + q + '>' }, { Name: 'List-Unsubscribe-Post', Value: 'List-Unsubscribe=One-Click' }] } } } } });\n}\nreturn out;\n"
+   },
+   "executeOnce": true
+  },
+  {
+   "id": "0c98241d-4a2e-51b4-a4fc-fdd58c2c5116",
+   "name": "An Brevo senden",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    1100,
+    300
+   ],
+   "parameters": {
+    "method": "POST",
+    "url": "https://api.brevo.com/v3/smtp/email",
+    "authentication": "genericCredentialType",
+    "genericAuthType": "httpHeaderAuth",
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "={{ JSON.stringify($json.body) }}",
+    "options": {
+     "batching": {
+      "batch": {
+       "batchSize": 5,
+       "batchInterval": 1100
+      }
+     }
+    }
+   },
+   "credentials": {
+    "httpHeaderAuth": {
+     "id": "__BREVO__",
+     "name": "Brevo"
+    }
+   },
+   "onError": "continueRegularOutput"
+  },
+  {
+   "id": "1e45de28-2298-50f4-aaf3-c2ab01e08571",
+   "name": "Ergebnis",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    1320,
+    300
+   ],
+   "parameters": {
+    "jsCode": "\nconst sent = $('Mails bauen').all();\nconst res = $input.all();\nconst ok = [], fail = [];\nres.forEach((r, i) => { const m = sent[i]?.json; if (!m) return; (r.json && (r.json.MessageId || r.json.messageId) ? ok : fail).push({ json: { token: m.token, field: m.field, mailId: m.mailId, fehler: r.json && r.json.error ? JSON.stringify(r.json.error).slice(0, 200) : '' } }); });\nconst sd = $getWorkflowStaticData('global');\nsd.heute = (sd.heute || 0) + ok.filter(o => o.json.field === 'm1').length;\nsd.mailsHeute = (sd.mailsHeute || 0) + ok.length;\nsd.letzterLauf = { zeit: new Date().toISOString(), ok: ok.length, fehler: fail.length, letzterFehler: fail[0] ? fail[0].json.fehler : '' };\nreturn ok.concat(fail.map(f => ({ json: { ...f.json, failed: true } })));\n"
+   }
+  },
+  {
+   "id": "1f47a6d4-9702-5e92-adb3-62c67b3089b6",
+   "name": "Als gesendet markieren",
+   "type": "n8n-nodes-base.dataTable",
+   "typeVersion": 1.1,
+   "position": [
+    1540,
+    300
+   ],
+   "parameters": {
+    "operation": "update",
+    "dataTableId": {
+     "__rl": true,
+     "value": "__LEADS__",
+     "mode": "id"
+    },
+    "filters": {
+     "conditions": [
+      {
+       "keyName": "token",
+       "keyValue": "={{ $json.token }}"
+      }
+     ]
+    },
+    "columns": {
+     "mappingMode": "defineBelow",
+     "value": {
+      "m1": "={{ $json.field === 'm1' ? ($json.failed ? 'fehler' : $now.toISO()) : undefined }}",
+      "m2": "={{ $json.field === 'm2' ? ($json.failed ? 'fehler' : $now.toISO()) : undefined }}",
+      "m2b": "={{ $json.field === 'm2b' ? ($json.failed ? 'fehler' : $now.toISO()) : undefined }}",
+      "m3": "={{ $json.field === 'm3' ? ($json.failed ? 'fehler' : $now.toISO()) : undefined }}",
+      "m4": "={{ $json.field === 'm4' ? ($json.failed ? 'fehler' : $now.toISO()) : undefined }}"
+     },
+     "matchingColumns": [],
+     "schema": [
+      {
+       "id": "m1",
+       "displayName": "m1",
+       "required": false,
+       "defaultMatch": false,
+       "display": true,
+       "type": "string",
+       "canBeUsedToMatch": true
+      },
+      {
+       "id": "m2",
+       "displayName": "m2",
+       "required": false,
+       "defaultMatch": false,
+       "display": true,
+       "type": "string",
+       "canBeUsedToMatch": true
+      },
+      {
+       "id": "m2b",
+       "displayName": "m2b",
+       "required": false,
+       "defaultMatch": false,
+       "display": true,
+       "type": "string",
+       "canBeUsedToMatch": true
+      },
+      {
+       "id": "m3",
+       "displayName": "m3",
+       "required": false,
+       "defaultMatch": false,
+       "display": true,
+       "type": "string",
+       "canBeUsedToMatch": true
+      },
+      {
+       "id": "m4",
+       "displayName": "m4",
+       "required": false,
+       "defaultMatch": false,
+       "display": true,
+       "type": "string",
+       "canBeUsedToMatch": true
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "c5498921-1784-55dc-9147-9f205785169c",
+   "name": "Zähler holen",
+   "type": "n8n-nodes-base.dataTable",
+   "typeVersion": 1.1,
+   "position": [
+    1760,
+    300
+   ],
+   "parameters": {
+    "operation": "get",
+    "dataTableId": {
+     "__rl": true,
+     "value": "__STATS__",
+     "mode": "id"
+    },
+    "returnAll": true
+   },
+   "alwaysOutputData": true,
+   "executeOnce": true
+  },
+  {
+   "id": "c293fb15-06d5-5320-8aaa-5bef152ec406",
+   "name": "Zählen",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    1980,
+    300
+   ],
+   "parameters": {
+    "jsCode": "\nconst stats = {}; for (const r of $('Zähler holen').all()) if (r.json && r.json.key) stats[r.json.key] = Number(r.json.anzahl) || 0;\nconst add = {}; for (const r of $('Ergebnis').all()) if (!r.json.failed) { const k = r.json.mailId + '|sent'; add[k] = (add[k] || 0) + 1; }\nreturn Object.entries(add).map(([key, n]) => ({ json: { key, mail: key.split('|')[0], typ: 'sent', anzahl: (stats[key] || 0) + n } }));\n"
+   },
+   "executeOnce": true
+  },
+  {
+   "id": "9fddca43-8f2a-5d4a-9336-1ac2a5e5741f",
+   "name": "Zähler speichern",
+   "type": "n8n-nodes-base.dataTable",
+   "typeVersion": 1.1,
+   "position": [
+    2200,
+    300
+   ],
+   "parameters": {
+    "operation": "upsert",
+    "dataTableId": {
+     "__rl": true,
+     "value": "__STATS__",
+     "mode": "id"
+    },
+    "filters": {
+     "conditions": [
+      {
+       "keyName": "key",
+       "keyValue": "={{ $json.key }}"
+      }
+     ]
+    },
+    "columns": {
+     "mappingMode": "defineBelow",
+     "value": {
+      "key": "={{ $json.key }}",
+      "mail": "={{ $json.mail }}",
+      "typ": "={{ $json.typ }}",
+      "anzahl": "={{ $json.anzahl }}"
+     },
+     "matchingColumns": [],
+     "schema": [
+      {
+       "id": "key",
+       "displayName": "key",
+       "required": false,
+       "defaultMatch": false,
+       "display": true,
+       "type": "string",
+       "canBeUsedToMatch": true
+      },
+      {
+       "id": "mail",
+       "displayName": "mail",
+       "required": false,
+       "defaultMatch": false,
+       "display": true,
+       "type": "string",
+       "canBeUsedToMatch": true
+      },
+      {
+       "id": "typ",
+       "displayName": "typ",
+       "required": false,
+       "defaultMatch": false,
+       "display": true,
+       "type": "string",
+       "canBeUsedToMatch": true
+      },
+      {
+       "id": "anzahl",
+       "displayName": "anzahl",
+       "required": false,
+       "defaultMatch": false,
+       "display": true,
+       "type": "number",
+       "canBeUsedToMatch": true
+      }
+     ]
+    }
+   }
+  }
+ ],
+ "connections": {
+  "Alle 10 Minuten": {
+   "main": [
+    [
+     {
+      "node": "Einstellungen",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Einstellungen": {
+   "main": [
+    [
+     {
+      "node": "Laufende Leads",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Laufende Leads": {
+   "main": [
+    [
+     {
+      "node": "Neue Leads",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Neue Leads": {
+   "main": [
+    [
+     {
+      "node": "Mails bauen",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Mails bauen": {
+   "main": [
+    [
+     {
+      "node": "An Brevo senden",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "An Brevo senden": {
+   "main": [
+    [
+     {
+      "node": "Ergebnis",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Ergebnis": {
+   "main": [
+    [
+     {
+      "node": "Als gesendet markieren",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Als gesendet markieren": {
+   "main": [
+    [
+     {
+      "node": "Zähler holen",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Zähler holen": {
+   "main": [
+    [
+     {
+      "node": "Zählen",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Zählen": {
+   "main": [
+    [
+     {
+      "node": "Zähler speichern",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  }
+ },
+ "settings": {
+  "executionOrder": "v1",
+  "saveDataSuccessExecution": "all"
+ }
+}
